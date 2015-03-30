@@ -34,7 +34,9 @@ class GoogleDriveService:
 		self.data = []
 		self.drive_service = None
 		self.options = {
-				'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION
+				'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
+				'remove_after_upload': False,
+				'move_to_backup_folder': None,
 				}
 
 	def authorize(self):
@@ -123,6 +125,12 @@ class GoogleDriveService:
 
 		if file != None:
 			logger.info("Upload `%s' finished." % (file_path));
+			if self.options['move_to_backup_folder'] != None:
+				new_folder_path = os.path.join(self.options['move_to_backup_folder'], os.path.dirname(file_path))
+				if not os.path.exists(new_folder_path):
+					os.makedirs(new_folder_path)
+				os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
+				logger.info("Move uploaded file %s to %s" % (file_path, new_folder_path))
 
 		return file
 
