@@ -60,7 +60,7 @@ class GoogleDriveService:
 					redirect_uri = GoogleDriveService.REDIRECT_URI)
 			authorize_url = flow.step1_get_authorize_url()
 			print u'Go to the following link in your browser: ' + authorize_url
-			code = raw_input(u'uEnter verification code: ').strip()
+			code = raw_input(u'Enter verification code: ').strip()
 			try:
 				credentials = flow.step2_exchange(code)
 			except FlowExchangeError, err:
