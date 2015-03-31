@@ -55,3 +55,28 @@ Features
 	  --log-file LOG_FILE   The remote folder path to upload the documents
 				separated by '/'.
 
+## Getting Started ##
+
+It will show an URL and ask an OAuth2 token for accessing Google Drive at the first launch. Go to shown url in a browser, log into your Google account to grant permission and copy code to console. It will store your credentials in the script folder by default so that your only need to do this step once.
+
+If there are files with name the same as uploaded one on GoogleDrive, it will be skipped by default
+
+	% python main.py FILE
+
+upload FILE to GoogleDrive root
+
+	% python main.py DIR
+	
+upload DIR to GoogleDrive root, tree structure of DIR will be preserved.
+
+	% python --remote-folder upload/new FILE1 FILE2 DIR
+
+upload FILE1, FILE2, and DIR to GoogleDrive:/newly_upload/new.
+
+	% python --move-to-backup-folder file.uploaded --conflict-action replace FILES DIRS
+
+upload FILES and DIRS to GoogleDrive:/, if there are files with name the same as uploaded one on GoogleDrive, they will be deleted first. After a file is uploaded, it will be moved to file.uploaded folder from original location.
+
+	% python --move-to-backup-folder file.uploaded --move-skipped-file FILES DIRS
+
+upload FILES and DIRS to GoogleDrive:/. Even a skipped file will be moved to backup folder.
