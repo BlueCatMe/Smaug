@@ -27,8 +27,8 @@ def main(argv):
 		return -1
 
 	parser = argparse.ArgumentParser(description=u'Batch upload files to Google Drive')
-	parser.add_argument(u'target', nargs=u'?',
-			help=u"target path, can be file or folder")
+	parser.add_argument(u'targets', nargs=u'+',
+			help=u"target path, can be files or folders")
 	parser.add_argument(u'--without-folders', action='store_true',
 			default=False, help=u"Do not recreate folder structure in Google Drive.")
 	parser.add_argument(u'--request-new-credentials', action='store_true',
@@ -80,7 +80,8 @@ def main(argv):
 			return -1
 
 	if service.authorize(client_secret_json_path, credentials_storage_path):
-		service.upload(options.target,
+		for target in options.targets:
+			service.upload(target,
 				remote_folder=options.remote_folder,
 				without_folders=options.without_folders)
 
