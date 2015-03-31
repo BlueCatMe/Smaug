@@ -20,7 +20,7 @@ from oauth2client.client import *
 logger = logging.getLogger(__name__)
 
 class GoogleDriveService:
-	CLIENT_SECRET_JSON_PATH = 'client_secret.json'
+	CLIENT_SECRET_JSON_FILENAME = 'client_secret.json'
 
 	# Check https://developers.google.com/drive/scopes for all available scopes
 	OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
@@ -43,12 +43,12 @@ class GoogleDriveService:
 				'move_skipped_file': False,
 				}
 
-	def authorize(self):
+	def authorize(self, json_path):
 		credentials = None
 		logger.debug("Authorize Google Drive.")
 		# Run through the OAuth flow and retrieve credentials
 		flow = flow_from_clientsecrets(
-				GoogleDriveService.CLIENT_SECRET_JSON_PATH,
+				P2S(json_path),
 				GoogleDriveService.OAUTH_SCOPE,
 				redirect_uri = GoogleDriveService.REDIRECT_URI)
 		authorize_url = flow.step1_get_authorize_url()

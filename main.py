@@ -18,8 +18,10 @@ def main(argv):
 
 	logging.basicConfig(level=logging.DEBUG)
 
-	if not os.path.isfile(GoogleDriveService.CLIENT_SECRET_JSON_PATH):
-		logger.critical("Please prepare %s for Google Drive API usage." % GoogleDriveService.CLIENT_SECRET_JSON_PATH)
+	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
+
+	if not os.path.isfile(P2S(client_secret_json_path)):
+		logger.critical("Please prepare %s for Google Drive API usage." % GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
 		return -1
 
 	parser = argparse.ArgumentParser(description='Batch upload files to Google Drive')
@@ -68,7 +70,7 @@ def main(argv):
 			logger.critical("`%s' is not a folder." % options.move_to_backup_folder)
 			return -1
 
-	if service.authorize():
+	if service.authorize(client_secret_json_path):
 		service.upload(options.target,
 				remote_folder=options.remote_folder,
 				without_folders=options.without_folders)
