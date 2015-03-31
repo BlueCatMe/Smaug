@@ -27,10 +27,10 @@ def main(argv):
 			help="target path, can be file or folder")
 	parser.add_argument('--without-folders', action='store_true',
 			default=False, help="Do not recreate folder structure in Google Drive.")
-	parser.add_argument('--remove-after-upload', action='store_true',
-			default=False, help="Remove uploaded file on disk.")
 	parser.add_argument('--move-to-backup-folder', default=None,
 			help="Move uploaded file to a backup folder.")
+	parser.add_argument('--move-skipped-file', action='store_true',
+			default=False, help="Move skipped files to backup folder. This option must work with --move-to-backup-folder")
 	parser.add_argument('--remote-folder', default=None,
 			help="The remote folder path to upload the documents separated by '/'.")
 	parser.add_argument('--conflict-action', default='skip', choices=['skip', 'replace', 'add'],
@@ -51,8 +51,8 @@ def main(argv):
 	service = GoogleDriveService()
 
 	service.options['conflict_action'] = options.conflict_action
-	service.options['remove_after_upload'] = options.remove_after_upload
 	service.options['move_to_backup_folder'] = options.move_to_backup_folder
+	service.options['move_skipped_file'] = options.move_skipped_file
 
 	logger.debug(service.options)
 

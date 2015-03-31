@@ -40,6 +40,7 @@ class GoogleDriveService:
 				'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
 				'remove_after_upload': False,
 				'move_to_backup_folder': None,
+				'move_skipped_file': False,
 				}
 
 	def authorize(self):
@@ -99,7 +100,8 @@ class GoogleDriveService:
 			logger.info("There is {0} file(s) with the same title.".format(len(files)))
 			if self.options['conflict_action'] == 'skip':
 				logger.info("`{0}' exists, skip it.".format(title))
-				self.handle_uploaded_file(file_path)
+				if self.options['move_skipped_file']:
+					self.handle_uploaded_file(file_path)
 				return files[0]
 			elif self.options['conflict_action'] == 'replace':
 				logger.info("`{0}' exists, replace it.".format(title))
