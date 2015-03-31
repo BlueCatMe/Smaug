@@ -17,6 +17,7 @@ def main(argv):
 	logging.basicConfig(level=logging.DEBUG)
 
 	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
+	credentials_storage_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CREDENTIALS_STORAGE_FILENAME)
 
 	if not os.path.isfile(client_secret_json_path):
 		logger.critical(u"Please prepare %s for Google Drive API usage." % GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
@@ -27,6 +28,10 @@ def main(argv):
 			help=u"target path, can be file or folder")
 	parser.add_argument(u'--without-folders', action='store_true',
 			default=False, help=u"Do not recreate folder structure in Google Drive.")
+	parser.add_argument(u'--request-new-credentials', action='store_true',
+			default=False, help=u"Request new credentials to change account.")
+	parser.add_argument(u'--credentials-path', default=credentials_storage_path,
+			help=u"assign credentials file path.")
 	parser.add_argument(u'--move-to-backup-folder', default=None,
 			help=u"Move uploaded file to a backup folder.")
 	parser.add_argument(u'--move-skipped-file', action=u'store_true',
@@ -48,8 +53,11 @@ def main(argv):
 
 	logger.debug(options)
 
+	credentials_storage_path = options.credentials_path
+
 	service = GoogleDriveService()
 
+	service.options[u'request_new_credentials'] = options.request_new_credentials
 	service.options[u'conflict_action'] = options.conflict_action
 	service.options[u'move_to_backup_folder'] = options.move_to_backup_folder
 	service.options[u'move_skipped_file'] = options.move_skipped_file
@@ -68,7 +76,7 @@ def main(argv):
 			logger.critical(u"`%s' is not a folder." % options.move_to_backup_folder)
 			return -1
 
-	if service.authorize(client_secret_json_path):
+	if service.authorize(client_secret_json_path, credentials_storage_path):
 		service.upload(options.target,
 				remote_folder=options.remote_folder,
 				without_folders=options.without_folders)

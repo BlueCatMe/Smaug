@@ -15,10 +15,13 @@ from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
 from oauth2client.client import *
 
+from oauth2client.file import Storage
+
 logger = logging.getLogger(__name__)
 
 class GoogleDriveService:
 	CLIENT_SECRET_JSON_FILENAME = u'client_secret.json'
+	CREDENTIALS_STORAGE_FILENAME = u'gdrive.credentials'
 
 	# Check https://developers.google.com/drive/scopes for all available scopes
 	OAUTH_SCOPE = u'https://www.googleapis.com/auth/drive'
@@ -35,28 +38,43 @@ class GoogleDriveService:
 		self.data = []
 		self.drive_service = None
 		self.options = {
+				u'request_new_credentials': False,
 				u'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
 				u'remove_after_upload': False,
 				u'move_to_backup_folder': None,
 				u'move_skipped_file': False,
 				}
 
-	def authorize(self, json_path):
+	def authorize(self, json_path, cred_path = None):
+
 		credentials = None
-		logger.debug(u"Authorize Google Drive.")
-		# Run through the OAuth flow and retrieve credentials
-		flow = flow_from_clientsecrets(
-				json_path,
-				GoogleDriveService.OAUTH_SCOPE,
-				redirect_uri = GoogleDriveService.REDIRECT_URI)
-		authorize_url = flow.step1_get_authorize_url()
-		print u'Go to the following link in your browser: ' + authorize_url
-		code = raw_input(u'uEnter verification code: ').strip()
-		try:
-			credentials = flow.step2_exchange(code)
-		except FlowExchangeError, err:
-			logger.error(u"flow step2 exchange failed! {0}".format(err))
-			credentials = None
+
+		if (not self.options[u'request_new_credentials']) and cred_path != None:
+			storage = Storage(cred_path)
+			credentials = storage.get()
+
+		if credentials is None or credentials.invalid:
+			logger.debug(u"Authorize Google Drive.")
+			# Run through the OAuth flow and retrieve credentials
+			flow = flow_from_clientsecrets(
+					json_path,
+					GoogleDriveService.OAUTH_SCOPE,
+					redirect_uri = GoogleDriveService.REDIRECT_URI)
+			authorize_url = flow.step1_get_authorize_url()
+			print u'Go to the following link in your browser: ' + authorize_url
+			code = raw_input(u'uEnter verification code: ').strip()
+			try:
+				credentials = flow.step2_exchange(code)
+			except FlowExchangeError, err:
+				logger.error(u"flow step2 exchange failed! {0}".format(err))
+				credentials = None
+
+		elif credentials.access_token_expired:
+			logger.debug(u'Refresh Google credentials')
+			credentials.refresh(httplib2.Http())
+
+		else:
+			logger.debug(u'Retrieve stored Google credentials')
 
 		if credentials != None:
 			# Create an httplib2.Http object and authorize it with our credentials
@@ -64,6 +82,10 @@ class GoogleDriveService:
 			http = credentials.authorize(http)
 
 			self.drive_service = build(u'drive', u'v2', http=http)
+
+			if cred_path != None:
+				storage = Storage(cred_path)
+				storage.put(credentials)
 
 
 		return (self.drive_service != None)
