@@ -1,14 +1,20 @@
+# coding=utf-8
 #!/usr/bin/python
 
 import os
 import sys
 import logging
 
+from utils import *
+
 from GoogleDriveService import *
 
 logger = logging.getLogger()
 
 def main(argv):
+
+	# translate encoding from file system to unicode.
+	argv = [S2P(a) for a in argv]
 
 	logging.basicConfig(level=logging.DEBUG)
 

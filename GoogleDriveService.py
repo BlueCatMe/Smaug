@@ -1,9 +1,12 @@
+# coding=utf-8
 #!/usr/bin/python
 
 import os
 import sys
 import traceback
 import logging
+
+from utils import *
 
 import httplib2
 import pprint
@@ -53,7 +56,7 @@ class GoogleDriveService:
 		try:
 			credentials = flow.step2_exchange(code)
 		except FlowExchangeError, err:
-			logger.error("flow step2 exchange failed! %s" % (err))
+			logger.error("flow step2 exchange failed! {0}".format(err))
 			credentials = None
 
 		if credentials != None:
@@ -76,8 +79,16 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
+	def handle_uploaded_file(self, file_path):
+		if self.options['move_to_backup_folder'] != None:
+			new_folder_path = os.path.join(self.options['move_to_backup_folder'], os.path.dirname(file_path))
+			if not os.path.exists(P2S(new_folder_path)):
+				os.makedirs(P2S(new_folder_path))
+			os.rename(P2S(file_path), P2S(os.path.join(new_folder_path, os.path.basename(file_path))))
+			logger.info("Move uploaded file {0} to {1}".format(file_path, new_folder_path))
+
 	def upload_file(self, file_path, mimetype=None, title=None, parent_id=None):
-		logger.info("Uploading file: %s" % file_path);
+		logger.info("Uploading file: {0}".format(file_path))
 
 		if title == None:
 			title = os.path.basename(file_path)
@@ -85,21 +96,22 @@ class GoogleDriveService:
 		files = self.get_file_by_title(title, parent_id=parent_id)
 
 		if len(files) > 0:
-			logger.info("There is %d file(s) with the same title." % len(files))
+			logger.info("There is {0} file(s) with the same title.".format(len(files)))
 			if self.options['conflict_action'] == 'skip':
-				logger.info("`%s' exists, skip it." % (title))
+				logger.info("`{0}' exists, skip it.".format(title))
+				self.handle_uploaded_file(file_path)
 				return files[0]
 			elif self.options['conflict_action'] == 'replace':
-				logger.info("`%s' exists, replace it." % (title))
+				logger.info("`{0}' exists, replace it.".format(title))
 				for file in files:
-					logger.info("Delete file: %s" % file['title'])
+					logger.info("Delete file: {0}".format(file['title']))
 					self.delete_file_by_id(file['id'])
 
 		if mimetype == None:
 			mimetype = GoogleDriveService.MIMETYPE_BINARY
 
 		# Insert a file
-		media_body = MediaFileUpload(file_path,
+		media_body = MediaFileUpload(P2S(file_path),
 				mimetype=mimetype,
 				resumable=True)
 
@@ -118,26 +130,25 @@ class GoogleDriveService:
 					media_body=media_body,
 					convert=False).execute()
 		except Exception, err:
-			logger.error("Upload `%s' failed!" % (file_path))
+			logger.error("Upload `{0}' failed!".format(file_path))
 			logger.error(traceback.format_exc())
 			pprint.pprint(file)
 			file = None
 
 		if file != None:
-			logger.info("Upload `%s' finished." % (file_path));
-			if self.options['move_to_backup_folder'] != None:
-				new_folder_path = os.path.join(self.options['move_to_backup_folder'], os.path.dirname(file_path))
-				if not os.path.exists(new_folder_path):
-					os.makedirs(new_folder_path)
-				os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
-				logger.info("Move uploaded file %s to %s" % (file_path, new_folder_path))
+			logger.info("Upload `{0}' finished.".format(file_path));
+			self.handle_uploaded_file(file_path)
 
 		return file
 
 	def upload_folder(self, folder_path, parent_id=None, without_folders = False):
-		logger.info("Uploading folder: %s" % folder_path);
+		logger.info("Uploading folder: {0}".format(folder_path))
 
-		for root, dirs, files in os.walk(folder_path):
+		for root, dirs, files in os.walk(P2S(folder_path)):
+			# translate system encoding to program encoding.
+			root = S2P(root)
+			files = [S2P(f) for f in files]
+
 			if without_folders:
 				parent = {'id':parent_id}
 			else:
@@ -156,15 +167,15 @@ class GoogleDriveService:
 			parent = self.mkdir(remote_folder)
 			parent_id = parent['id']
 
-		if os.path.exists(path):
-			if os.path.isdir(path):
+		if os.path.exists(P2S(path)):
+			if os.path.isdir(P2S(path)):
 				result = self.upload_folder(path, parent_id, without_folders)
-			elif os.path.isfile(path):
+			elif os.path.isfile(P2S(path)):
 				result = self.upload_file(path, parent_id=parent_id)
 			else:
 				logger.error("Not a file and not a folder!")
 		else:
-			logger.error("%s does not exist!" % path)
+			logger.error("{0} does not exist!".format(path))
 
 		return result
 
@@ -189,25 +200,25 @@ class GoogleDriveService:
 					}
 
 		for name in names:
-			query = "title=\"%s\" and mimeType=\"%s\" and \"%s\" in parents and trashed=false" % (name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
+			query = "title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results['items']
 			num = len(items)
 			# create a folder
 			if num == 0:
 				body = {
-						"title": name,
+						"title": "{0}".format(name),
 						"parents": [{'id':parent_item['id']}],
 						"mimeType": GoogleDriveService.MIMETYPE_FOLDER,
 						}
 				parent_item = self.drive_service.files().insert(
 						body=body, convert=False).execute()
-				logger.info("Create folder: %s" % name)
+				logger.info("Create folder: {0}".format(name))
 			else:
 				parent_item = items[0]
 
 			if num > 1:
-				logger.warn("Find multiple folder with the same title, `%s'" % name)
+				logger.warn("Find multiple folder with the same title, `{0}'".format(name))
 
 		return parent_item
 
@@ -224,7 +235,7 @@ class GoogleDriveService:
 					'title'	: parent_id,
 					}
 
-		query = "title=\"%s\" and mimeType!=\"%s\" and \"%s\" in parents and trashed=false" % (
+		query = "title=\"{0}\" and mimeType!=\"{1}\" and \"{2}\" in parents and trashed=false".format(
 				title,
 				GoogleDriveService.MIMETYPE_FOLDER,
 				parent_item['id']
@@ -255,17 +266,17 @@ class GoogleDriveService:
 					}
 		# start from root
 		for name in names:
-			query = "title=\"%s\" and mimeType=\"%s\" and \"%s\" in parents and trashed=false" % (name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
+			query = "title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results['items']
 			num = len(items)
 			if num == 0:
-				logger.info("Cannot find `%s' folder in %s" % (name, parent_item['title']))
+				logger.info("Cannot find `{0}'".format(name))
 				parent_item = None
 				break
 
 			if num > 1:
-				logger.warn("Find multiple folder with the same title, `%s'" % name)
+				logger.warn("Find multiple folder with the same title, `{0}'".format(name))
 
 			parent_item = items[0]
 
