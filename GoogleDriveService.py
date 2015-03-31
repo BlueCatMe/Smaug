@@ -83,8 +83,12 @@ class GoogleDriveService:
 			new_folder_path = os.path.join(self.options[u'move_to_backup_folder'], os.path.dirname(file_path))
 			if not os.path.exists(new_folder_path):
 				os.makedirs(new_folder_path)
-			os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
-			logger.info(u"Move uploaded file {0} to {1}".format(file_path, new_folder_path))
+			try:
+				os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
+				logger.info(u"Move uploaded file {0} to {1}".format(file_path, new_folder_path))
+			except Exception, err:
+				logger.warn(u"Cannot move uploaded file {0} to {1}".format(file_path, new_folder_path))
+				logger.warn(u"Exception: {0}".format(err))
 
 	def upload_file(self, file_path, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
