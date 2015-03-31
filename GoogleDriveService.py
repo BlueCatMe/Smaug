@@ -48,7 +48,7 @@ class GoogleDriveService:
 		logger.debug("Authorize Google Drive.")
 		# Run through the OAuth flow and retrieve credentials
 		flow = flow_from_clientsecrets(
-				P2S(json_path),
+				P2U(json_path),
 				GoogleDriveService.OAUTH_SCOPE,
 				redirect_uri = GoogleDriveService.REDIRECT_URI)
 		authorize_url = flow.step1_get_authorize_url()
@@ -83,9 +83,9 @@ class GoogleDriveService:
 	def handle_uploaded_file(self, file_path):
 		if self.options['move_to_backup_folder'] != None:
 			new_folder_path = os.path.join(self.options['move_to_backup_folder'], os.path.dirname(file_path))
-			if not os.path.exists(P2S(new_folder_path)):
-				os.makedirs(P2S(new_folder_path))
-			os.rename(P2S(file_path), P2S(os.path.join(new_folder_path, os.path.basename(file_path))))
+			if not os.path.exists(P2U(new_folder_path)):
+				os.makedirs(P2U(new_folder_path))
+			os.rename(P2U(file_path), P2U(os.path.join(new_folder_path, os.path.basename(file_path))))
 			logger.info("Move uploaded file {0} to {1}".format(file_path, new_folder_path))
 
 	def upload_file(self, file_path, mimetype=None, title=None, parent_id=None):
@@ -113,7 +113,7 @@ class GoogleDriveService:
 			mimetype = GoogleDriveService.MIMETYPE_BINARY
 
 		# Insert a file
-		media_body = MediaFileUpload(P2S(file_path),
+		media_body = MediaFileUpload(P2U(file_path),
 				mimetype=mimetype,
 				resumable=True)
 
@@ -146,10 +146,11 @@ class GoogleDriveService:
 	def upload_folder(self, folder_path, parent_id=None, without_folders = False):
 		logger.info("Uploading folder: {0}".format(folder_path))
 
-		for root, dirs, files in os.walk(P2S(folder_path)):
+		# windows returns unicode filename with unicode path.
+		for root, dirs, files in os.walk(P2U(folder_path)):
 			# translate system encoding to program encoding.
-			root = S2P(root)
-			files = [S2P(f) for f in files]
+			root = U2P(root)
+			files = [U2P(f) for f in files]
 
 			if without_folders:
 				parent = {'id':parent_id}
@@ -169,10 +170,10 @@ class GoogleDriveService:
 			parent = self.mkdir(remote_folder)
 			parent_id = parent['id']
 
-		if os.path.exists(P2S(path)):
-			if os.path.isdir(P2S(path)):
+		if os.path.exists(P2U(path)):
+			if os.path.isdir(P2U(path)):
 				result = self.upload_folder(path, parent_id, without_folders)
-			elif os.path.isfile(P2S(path)):
+			elif os.path.isfile(P2U(path)):
 				result = self.upload_file(path, parent_id=parent_id)
 			else:
 				logger.error("Not a file and not a folder!")

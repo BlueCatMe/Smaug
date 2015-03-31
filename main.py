@@ -20,7 +20,7 @@ def main(argv):
 
 	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
 
-	if not os.path.isfile(P2S(client_secret_json_path)):
+	if not os.path.isfile(P2U(client_secret_json_path)):
 		logger.critical("Please prepare %s for Google Drive API usage." % GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
 		return -1
 
