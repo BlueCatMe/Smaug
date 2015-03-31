@@ -20,8 +20,6 @@ from oauth2client.file import Storage
 logger = logging.getLogger(__name__)
 
 class GoogleDriveService:
-	CLIENT_SECRET_JSON_FILENAME = u'client_secret.json'
-	CREDENTIALS_STORAGE_FILENAME = u'gdrive.credentials'
 
 	# Check https://developers.google.com/drive/scopes for all available scopes
 	OAUTH_SCOPE = u'https://www.googleapis.com/auth/drive'

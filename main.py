@@ -9,6 +9,9 @@ from GoogleDriveService import *
 
 logger = logging.getLogger()
 
+CLIENT_SECRET_JSON_FILENAME = u'client_secret.json'
+CREDENTIALS_STORAGE_FILENAME = u'default.cred'
+
 def main(argv):
 
 	# translate encoding from file system to unicode.
@@ -16,11 +19,11 @@ def main(argv):
 
 	logging.basicConfig(level=logging.DEBUG)
 
-	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
-	credentials_storage_path = os.path.join(os.path.dirname(argv[0]), GoogleDriveService.CREDENTIALS_STORAGE_FILENAME)
+	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), CLIENT_SECRET_JSON_FILENAME)
+	credentials_storage_path = os.path.join(os.path.dirname(argv[0]), CREDENTIALS_STORAGE_FILENAME)
 
 	if not os.path.isfile(client_secret_json_path):
-		logger.critical(u"Please prepare %s for Google Drive API usage." % GoogleDriveService.CLIENT_SECRET_JSON_FILENAME)
+		logger.critical(u"Please prepare %s for Google Drive API usage." % CLIENT_SECRET_JSON_FILENAME)
 		return -1
 
 	parser = argparse.ArgumentParser(description=u'Batch upload files to Google Drive')
