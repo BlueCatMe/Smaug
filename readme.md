@@ -1,6 +1,13 @@
 # Google Drive Uploader #
 
 A command line interface to upload buck files and folders.
+This tool focuses on uploading functions.
+File synchronization or data download will not be supported.
+
+Features
+* upload files or folders to assigned GoogleDrive path.
+* move uploaded files to another location.
+* support different conflict action to handle files with the same name.
 
 ## Requirement ##
 
@@ -17,20 +24,25 @@ A command line interface to upload buck files and folders.
 
 ## Usasge ##
 
-	usage: main.py [-h] [--without-folders]
-		       [--move-to-backup-folder MOVE_TO_BACKUP_FOLDER]
-		       [--move-skipped-file] [--remote-folder REMOTE_FOLDER]
-		       [--conflict-action {skip,replace,add}] [--log-file LOG_FILE]
-		       [target]
+	usage: main.py [-h] [--without-folders] [--request-new-credentials]
+	               [--credentials-path CREDENTIALS_PATH]
+	               [--move-to-backup-folder MOVE_TO_BACKUP_FOLDER]
+	               [--move-skipped-file] [--remote-folder REMOTE_FOLDER]
+	               [--conflict-action {skip,replace,add}] [--log-file LOG_FILE]
+	               targets [targets ...]
 
 	Batch upload files to Google Drive
 
 	positional arguments:
-	  target                target path, can be file or folder
+	  targets               target path, can be files or folders
 
 	optional arguments:
 	  -h, --help            show this help message and exit
 	  --without-folders     Do not recreate folder structure in Google Drive.
+          --request-new-credentials
+          			Request new credentials to change account.
+          --credentials-path CREDENTIALS_PATH
+				assign credentials file path.
 	  --move-to-backup-folder MOVE_TO_BACKUP_FOLDER
 				Move uploaded file to a backup folder.
 	  --move-skipped-file   Move skipped files to backup folder. This option must
