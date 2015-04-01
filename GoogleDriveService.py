@@ -19,6 +19,12 @@ from oauth2client.file import Storage
 
 logger = logging.getLogger(__name__)
 
+def exception_format(exc):
+	return u"{0}({1})".format(
+			type(exc).__name__,
+			str(exc).decode(sys.getfilesystemencoding())
+			);
+
 class GoogleDriveService:
 
 	# Check https://developers.google.com/drive/scopes for all available scopes
@@ -64,7 +70,8 @@ class GoogleDriveService:
 			try:
 				credentials = flow.step2_exchange(code)
 			except FlowExchangeError, err:
-				logger.error(u"flow step2 exchange failed! {0}".format(err))
+				logger.error(u"flow step2 exchange failed!")
+				logger.error(exception_format(err))
 				credentials = None
 
 		elif credentials.access_token_expired:
@@ -92,9 +99,9 @@ class GoogleDriveService:
 		ret = True
 		try:
 			self.drive_service.files().delete(fileId=file_id).execute()
-		except Exception, error:
-			logger.error(u'Delete file failed!')
-			logger.error(traceback.format_exc())
+		except Exception, err:
+			logger.warn(u'Delete file failed!')
+			logger.warn(exception_format(err))
 			ret = False
 		return ret
 
@@ -106,9 +113,9 @@ class GoogleDriveService:
 			try:
 				os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
 				logger.info(u"Move uploaded file {0} to {1}".format(file_path, new_folder_path))
-			except Exception, err:
+			except WindowsError, err:
 				logger.warn(u"Cannot move uploaded file {0} to {1}".format(file_path, new_folder_path))
-				logger.warn(u"Exception: {0}".format(err))
+				logger.warn(exception_format(err))
 
 	def upload_file(self, file_path, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
@@ -155,8 +162,7 @@ class GoogleDriveService:
 					convert=False).execute()
 		except Exception, err:
 			logger.error(u"Upload `{0}' failed!".format(file_path))
-			logger.error(traceback.format_exc())
-			pprint.pprint(file)
+			logger.error(exception_format(err))
 			file = None
 
 		if file != None:
