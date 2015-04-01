@@ -1,7 +1,7 @@
 @ECHO OFF
 SET SCRIPT_PATH=%~dp0
-SET SRC=%1
-SET DEST=%2
+SET SRC=%~1
+SET DEST=%~2
 
 if "[%SRC%]"=="[]" (
 	echo.
