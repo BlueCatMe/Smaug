@@ -195,7 +195,7 @@ class GoogleDriveService:
 		parent_id = None
 
 		if remote_folder != None:
-			parent = self.mkdir(remote_folder)
+			parent = self.mkdir(remote_folder.rstrip('/'))
 			parent_id = parent[u'id']
 
 		if os.path.exists(path):
