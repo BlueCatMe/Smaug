@@ -105,9 +105,16 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
-	def handle_uploaded_file(self, file_path):
+	def handle_uploaded_file(self, file_path, base = None):
+		if base == None:
+			base = os.path.dirname(file_path)
+
+		logger.info(u"Base: {0}".format(base))
+
 		if self.options[u'move_to_backup_folder'] != None:
-			new_folder_path = os.path.join(self.options[u'move_to_backup_folder'], os.path.dirname(file_path))
+			relative_path = os.path.relpath(file_path, base)
+			new_folder_path = os.path.join(self.options[u'move_to_backup_folder'], os.path.dirname(relative_path))
+
 			if not os.path.exists(new_folder_path):
 				os.makedirs(new_folder_path)
 			try:
@@ -117,11 +124,16 @@ class GoogleDriveService:
 				logger.warn(u"Cannot move uploaded file {0} to {1}".format(file_path, new_folder_path))
 				logger.warn(exception_format(err))
 
-	def upload_file(self, file_path, mimetype=None, title=None, parent_id=None):
+	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
 
 		if title == None:
 			title = os.path.basename(file_path)
+
+		if base == None:
+			base = os.path.dirname(file_path)
+
+		logger.info(u"Base: {0}".format(base))
 
 		files = self.get_file_by_title(title, parent_id=parent_id)
 
@@ -130,7 +142,7 @@ class GoogleDriveService:
 			if self.options[u'conflict_action'] == u'skip':
 				logger.info(u"`{0}' exists, skip it.".format(title))
 				if self.options[u'move_skipped_file']:
-					self.handle_uploaded_file(file_path)
+					self.handle_uploaded_file(file_path, base=base)
 				return files[0]
 			elif self.options[u'conflict_action'] == u'replace':
 				logger.info(u"`{0}' exists, replace it.".format(title))
@@ -167,28 +179,29 @@ class GoogleDriveService:
 
 		if file != None:
 			logger.info(u"Upload `{0}' finished.".format(file_path));
-			self.handle_uploaded_file(file_path)
+			self.handle_uploaded_file(file_path, base=base)
 
 		return file
 
 	def upload_folder(self, folder_path, parent_id=None, without_folders = False):
 		logger.info(u"Uploading folder: {0}".format(folder_path))
 
+		base = os.path.dirname(folder_path)
+
 		# windows returns unicode filename with unicode path.
 		for root, dirs, files in os.walk(folder_path):
-			# translate system encoding to program encoding.
-			root = root
-			files = [f for f in files]
+
+			relative_path = os.path.relpath(root, base)
 
 			if without_folders:
 				parent = {u'id':parent_id}
 			else:
-				parent = self.get_folder_by_path(root, parent_id)
+				parent = self.get_folder_by_path(relative_path, parent_id)
 				if parent == None:
-					parent = self.mkdir(root, parent_id)
+					parent = self.mkdir(relative_path, parent_id)
 
 			for file in files:
-				self.upload_file(os.path.join(root, file), title=file, parent_id=parent[u'id'])
+				self.upload_file(os.path.join(root, file), base=base, title=file, parent_id=parent[u'id'])
 
 	def upload(self, path, remote_folder = None, without_folders = False):
 		result = None
@@ -198,9 +211,11 @@ class GoogleDriveService:
 			parent = self.mkdir(remote_folder.rstrip('/'))
 			parent_id = parent[u'id']
 
+		path = path.rstrip(os.sep)
+
 		if os.path.exists(path):
 			if os.path.isdir(path):
-				result = self.upload_folder(path, parent_id, without_folders)
+				result = self.upload_folder(path, parent_id=parent_id, without_folders=without_folders)
 			elif os.path.isfile(path):
 				result = self.upload_file(path, parent_id=parent_id)
 			else:
