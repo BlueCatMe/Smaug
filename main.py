@@ -81,9 +81,13 @@ def main(argv):
 
 	if service.authorize(client_secret_json_path, credentials_storage_path):
 		for target in options.targets:
-			service.upload(target,
+			result = service.upload(target,
 				remote_folder=options.remote_folder,
 				without_folders=options.without_folders)
+			if result == True:
+				logger.info(u"Uploading `{0}' successed.".format(target));
+			else:
+				logger.warn(u"Uploading `{0}' failed.".format(target));
 
 if __name__ == u"__main__":
 	main(sys.argv)
