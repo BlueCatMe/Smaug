@@ -39,9 +39,9 @@ Features
 	optional arguments:
 	  -h, --help            show this help message and exit
 	  --without-folders     Do not recreate folder structure in Google Drive.
-          --request-new-credentials
-          			Request new credentials to change account.
-          --credentials-path CREDENTIALS_PATH
+	  --request-new-credentials
+				Request new credentials to change account.
+	  --credentials-path CREDENTIALS_PATH
 				assign credentials file path.
 	  --move-to-backup-folder MOVE_TO_BACKUP_FOLDER
 				Move uploaded file to a backup folder.
