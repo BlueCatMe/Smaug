@@ -40,8 +40,12 @@ class GoogleDriveService:
 
 	def __init__(self):
 		self.data = []
+		# internal resources
 		self.drive_service = None
+		# dynamic variables
+		self.remote_base = ''
 		self.remote_folder_data_cache = {}
+		# class options
 		self.options = {
 				u'request_new_credentials': False,
 				u'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
@@ -110,8 +114,6 @@ class GoogleDriveService:
 		if base == None:
 			base = os.path.dirname(file_path)
 
-		logger.info(u"Base: {0}".format(base))
-
 		if self.options[u'move_to_backup_folder'] != None:
 			relative_path = os.path.relpath(file_path, base)
 			new_folder_path = os.path.join(self.options[u'move_to_backup_folder'], os.path.dirname(relative_path))
@@ -137,8 +139,6 @@ class GoogleDriveService:
 
 		if base == None:
 			base = os.path.dirname(file_path)
-
-		logger.info(u"Base: {0}".format(base))
 
 		files = self.get_file_by_title(title, parent_id=parent_id)
 
@@ -177,12 +177,18 @@ class GoogleDriveService:
 					media_body=media_body,
 					convert=False).execute()
 		except Exception, err:
-			logger.error(u"Upload `{0}' failed!".format(file_path))
+			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
+				self.remote_base,
+				os.path.relpath(file_path, base)
+				))
 			logger.error(exception_format(err))
 			file = None
 
 		if file != None:
-			logger.info(u"Upload `{0}' finished.".format(file_path));
+			logger.info(u"Upload `{0}' to `{1}/{2}' finished.".format(file_path,
+				self.remote_base,
+				os.path.relpath(file_path, base)
+				))
 			upload_return = GoogleDriveService.UPLOAD_DONE
 
 		return (file, upload_return)
@@ -227,8 +233,10 @@ class GoogleDriveService:
 		if remote_folder != None:
 			parent = self.mkdir(remote_folder.rstrip('/'))
 			parent_id = parent[u'id']
+			self.remote_base = remote_folder
 
 		path = path.rstrip(os.sep)
+		logger.info(path)
 
 		if os.path.exists(path):
 			if os.path.isdir(path):
