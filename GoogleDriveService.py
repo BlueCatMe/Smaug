@@ -41,6 +41,7 @@ class GoogleDriveService:
 	def __init__(self):
 		self.data = []
 		self.drive_service = None
+		self.remote_folder_data_cache = {}
 		self.options = {
 				u'request_new_credentials': False,
 				u'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
@@ -209,9 +210,7 @@ class GoogleDriveService:
 			if without_folders:
 				parent = {u'id':parent_id}
 			else:
-				parent = self.get_folder_by_path(relative_path, parent_id)
-				if parent == None:
-					parent = self.mkdir(relative_path, parent_id)
+				parent = self.mkdir(relative_path, parent_id)
 
 			for file in files:
 				(f, result) = self.upload_file(os.path.join(root, file), base=base, title=file, parent_id=parent[u'id'])
@@ -247,7 +246,14 @@ class GoogleDriveService:
 	def mkdir(self, folder_path, parent_id = None):
 		dir_id = None
 
-		names = folder_path.rstrip(os.sep).split(os.sep)
+		folder_path = folder_path.rstrip(os.sep)
+		parent_folder_path = os.path.dirname(folder_path)
+		if parent_folder_path in self.remote_folder_data_cache:
+			logger.debug(u"`{0}' id query is cached hit.".format(parent_folder_path))
+			parent_id = self.remote_folder_data_cache[parent_folder_path]['id']
+			names = os.path.relpath(folder_path, parent_folder_path).split(os.sep)
+		else:
+			names = folder_path.split(os.sep)
 
 		# remove root directory empty name or current directory name, '.'
 		if names[0] in [u'.', u'']:
@@ -285,6 +291,9 @@ class GoogleDriveService:
 			if num > 1:
 				logger.warn(u"Find multiple folder with the same title, `{0}'".format(name))
 
+		if parent_item != None:
+			self.remote_folder_data_cache[folder_path] = parent_item
+
 		return parent_item
 
 	def get_file_by_title(self, title, parent_id = None):
@@ -313,7 +322,15 @@ class GoogleDriveService:
 
 	def get_folder_by_path(self, folder_path, parent_id = None):
 
-		names = folder_path.rstrip(os.sep).split(os.sep)
+		folder_path = folder_path.rstrip(os.sep)
+
+		parent_folder_path = os.path.dirname(folder_path)
+		if parent_folder_path in self.remote_folder_data_cache:
+			logger.debug(u"`{0}' id query is cached hit.".format(parent_folder_path))
+			parent_id = self.remote_folder_data_cache[parent_folder_path]['id']
+			names = os.path.relpath(folder_path, parent_folder_path).split(os.sep)
+		else:
+			names = folder_path.split(os.sep)
 
 		# remove root directory empty name or current directory name, '.'
 		if names[0] in [u'.', u'']:
@@ -344,5 +361,8 @@ class GoogleDriveService:
 				logger.warn(u"Find multiple folder with the same title, `{0}'".format(name))
 
 			parent_item = items[0]
+
+		if parent_item != None:
+			self.remote_folder_data_cache[folder_path] = parent_item
 
 		return parent_item
