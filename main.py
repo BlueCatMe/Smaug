@@ -7,17 +7,26 @@ import logging
 
 from GoogleDriveService import *
 
-logger = logging.getLogger()
-
 CLIENT_SECRET_JSON_FILENAME = u'client_secret.json'
 CREDENTIALS_STORAGE_FILENAME = u'default.cred'
+
+class StreamHandlerFilter(object):
+	def filter(self, record):
+		return not record.name.startswith(u'googleapiclient')
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_formatter = logging.Formatter(u'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler.setFormatter(stream_formatter)
+stream_handler.addFilter(StreamHandlerFilter())
+logger.addHandler(stream_handler)
 
 def main(argv):
 
 	# translate encoding from file system to unicode.
 	argv = [a.decode(sys.getfilesystemencoding()) for a in argv]
-
-	logging.basicConfig(level=logging.DEBUG)
 
 	client_secret_json_path = os.path.join(os.path.dirname(argv[0]), CLIENT_SECRET_JSON_FILENAME)
 	credentials_storage_path = os.path.join(os.path.dirname(argv[0]), CREDENTIALS_STORAGE_FILENAME)
