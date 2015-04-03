@@ -36,13 +36,18 @@ class GoogleDriveService:
 	MIMETYPE_BINARY = u'application/octet-stream'
 	MIMETYPE_FOLDER = u'application/vnd.google-apps.folder'
 
+	CREDENTIALS_EXPIRE_IN_SECOND = 3600
+
 	DEFAULT_CONFLICT_ACTION = u'skip'
 
-	def __init__(self):
+	def __init__(self, json_path, cred_path):
 		self.data = []
 		# internal resources
 		self.drive_service = None
+		self.client_secret_json_path = json_path
+		self.credentials_path = cred_path
 		# dynamic variables
+		self.credentials_refresh_time = None
 		self.remote_base = ''
 		self.remote_folder_data_cache = {}
 		# class options
@@ -54,19 +59,19 @@ class GoogleDriveService:
 				u'move_skipped_file': False,
 				}
 
-	def authorize(self, json_path, cred_path = None):
+	def authorize_raw(self):
 
 		credentials = None
 
-		if (not self.options[u'request_new_credentials']) and cred_path != None:
-			storage = Storage(cred_path)
+		if (not self.options[u'request_new_credentials']) and self.credentials_path != None:
+			storage = Storage(self.credentials_path)
 			credentials = storage.get()
 
 		if credentials is None or credentials.invalid:
 			logger.debug(u"Authorize Google Drive.")
 			# Run through the OAuth flow and retrieve credentials
 			flow = flow_from_clientsecrets(
-					json_path,
+					self.client_secret_json_path,
 					GoogleDriveService.OAUTH_SCOPE,
 					redirect_uri = GoogleDriveService.REDIRECT_URI)
 			authorize_url = flow.step1_get_authorize_url()
@@ -85,6 +90,10 @@ class GoogleDriveService:
 
 		else:
 			logger.debug(u'Retrieve stored Google credentials')
+			# Force refresh to known when it will expire.
+			credentials.refresh(httplib2.Http())
+
+		self.credentials_refresh_time = datetime.datetime.now()
 
 		if credentials != None:
 			# Create an httplib2.Http object and authorize it with our credentials
@@ -93,16 +102,40 @@ class GoogleDriveService:
 
 			self.drive_service = build(u'drive', u'v2', http=http)
 
-			if cred_path != None:
-				storage = Storage(cred_path)
+			if self.credentials_path != None:
+				storage = Storage(self.credentials_path)
 				storage.put(credentials)
 
 
 		return (self.drive_service != None)
 
+	# call this function before any non-authorize drive API.
+	def service_refresh(self):
+
+		result = True
+
+		do_refresh = False
+
+		now = datetime.datetime.now()
+
+		if self.credentials_refresh_time == None:
+			do_refresh = True
+		elif (now - self.credentials_refresh_time).total_seconds() > (GoogleDriveService.CREDENTIALS_EXPIRE_IN_SECOND * 0.9):
+			do_refresh = True
+
+		if do_refresh == True:
+			result = self.authorize_raw()
+			logger.info(u"Service Refresh Time: {0}".format(self.credentials_refresh_time))
+
+		return result
+
+	def authorize(self):
+		return self.service_refresh()
+
 	def delete_file_by_id(self, file_id):
 		ret = True
 		try:
+			self.service_refresh()
 			self.drive_service.files().delete(fileId=file_id).execute()
 		except Exception, err:
 			logger.warn(u'Delete file failed!')
@@ -172,6 +205,7 @@ class GoogleDriveService:
 		file = None
 		upload_return = GoogleDriveService.UPLOAD_FAIL
 		try:
+			self.service_refresh()
 			file = self.drive_service.files().insert(
 					body=body,
 					media_body=media_body,
@@ -279,12 +313,14 @@ class GoogleDriveService:
 					}
 
 		for name in names:
+			self.service_refresh()
 			query = u"title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results[u'items']
 			num = len(items)
 			# create a folder
 			if num == 0:
+				self.service_refresh()
 				body = {
 						u"title": u"{0}".format(name),
 						u"parents": [{u'id':parent_item[u'id']}],
@@ -323,6 +359,7 @@ class GoogleDriveService:
 				parent_item['id']
 				)
 
+		self.service_refresh()
 		results = self.drive_service.files().list(q=query).execute()
 
 		return results[u'items']
@@ -356,6 +393,7 @@ class GoogleDriveService:
 					}
 		# start from root
 		for name in names:
+			self.service_refresh()
 			query = u"title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results[u'items']

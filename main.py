@@ -83,7 +83,7 @@ def main(argv):
 			logger.critical(u"`%s' is not a folder." % options.move_to_backup_folder)
 			return -os.errno.ENOTDIR
 
-	service = GoogleDriveService()
+	service = GoogleDriveService(client_secret_json_path, credentials_storage_path)
 	service.options[u'request_new_credentials'] = options.request_new_credentials
 	service.options[u'conflict_action'] = options.conflict_action
 	service.options[u'move_to_backup_folder'] = options.move_to_backup_folder
@@ -91,7 +91,7 @@ def main(argv):
 	logger.debug(service.options)
 
 	ret_code = 0
-	if service.authorize(client_secret_json_path, credentials_storage_path):
+	if service.authorize():
 		for target in options.targets:
 			result = service.upload(target,
 				remote_folder=options.remote_folder,
