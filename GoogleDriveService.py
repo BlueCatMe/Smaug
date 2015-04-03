@@ -348,7 +348,10 @@ class GoogleDriveService:
 
 		for name in names:
 			self.service_refresh()
-			query = u"title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
+			query = u'trashed=false'
+			query += u' and title=\"{0}\"'.format(name)
+			query += u' and mimeType=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
+			query += u' and \"{0}\" in parents'.format(parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results[u'items']
 			num = len(items)
@@ -387,11 +390,10 @@ class GoogleDriveService:
 					u'title': parent_id,
 					}
 
-		query = u"title=\"{0}\" and mimeType!=\"{1}\" and \"{2}\" in parents and trashed=false".format(
-				title,
-				GoogleDriveService.MIMETYPE_FOLDER,
-				parent_item['id']
-				)
+		query = u'trashed=false'
+		query += u' and title=\"{0}\"'.format(title)
+		query += u' and mimeType!=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
+		query += u' and \"{0}\" in parents'.format(parent_item['id'])
 
 		self.service_refresh()
 		results = self.drive_service.files().list(q=query).execute()
@@ -428,7 +430,10 @@ class GoogleDriveService:
 		# start from root
 		for name in names:
 			self.service_refresh()
-			query = u"title=\"{0}\" and mimeType=\"{1}\" and \"{2}\" in parents and trashed=false".format(name, GoogleDriveService.MIMETYPE_FOLDER, parent_item['id'])
+			query = u'trashed=false'
+			query += u' and title=\"{0}\"'.format(name)
+			query += u' and mimeType=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
+			query += u' and \"{0}\" in parents'.format(parent_item['id'])
 			results = self.drive_service.files().list(q=query).execute()
 			items = results[u'items']
 			num = len(items)
