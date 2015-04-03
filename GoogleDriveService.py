@@ -19,6 +19,12 @@ from oauth2client.file import Storage
 
 logger = logging.getLogger(__name__)
 
+def calculate_speed(start_time, progress, total_size, base = 1024):
+	now = datetime.datetime.now()
+	running_time = (datetime.datetime.now() - start_time).total_seconds()
+	return int((total_size * progress / base) / running_time)
+
+
 def exception_format(exc):
 	return u"{0}({1})".format(
 			type(exc).__name__,
@@ -35,6 +41,8 @@ class GoogleDriveService:
 
 	MIMETYPE_BINARY = u'application/octet-stream'
 	MIMETYPE_FOLDER = u'application/vnd.google-apps.folder'
+
+	TRANSFER_CHUNK_SIZE = 1024*1024
 
 	CREDENTIALS_EXPIRE_IN_SECOND = 3600
 
@@ -192,6 +200,7 @@ class GoogleDriveService:
 		# Insert a file
 		media_body = MediaFileUpload(file_path,
 				mimetype=mimetype,
+				chunksize=GoogleDriveService.TRANSFER_CHUNK_SIZE,
 				resumable=True)
 
 		body = {
@@ -202,30 +211,55 @@ class GoogleDriveService:
 		if parent_id != None:
 			body[u"parents"] = [{u'id':parent_id}]
 
-		file = None
+		response = None
+		progress = 0
+		start_time = datetime.datetime.now()
+		total_size = os.path.getsize(file_path)
 		upload_return = GoogleDriveService.UPLOAD_FAIL
 		try:
 			self.service_refresh()
-			file = self.drive_service.files().insert(
+			request = self.drive_service.files().insert(
 					body=body,
 					media_body=media_body,
-					convert=False).execute()
+					convert=False)
+			while response is None:
+				status, response = request.next_chunk()
+				if status:
+					progress = status.progress()
+
+					sys.stdout.write(u"\rProgress {0}% ({1}/{2} bytes, {3} KB/s)".format(
+						int(progress * 100),
+						int(total_size * progress),
+						total_size,
+						calculate_speed(start_time, progress, total_size))
+						)
 		except Exception, err:
+			sys.stdout.write(u"\r\n")
+			logger.error(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
+				int(total_size * progress),
+				total_size,
+				calculate_speed(start_time, progress, total_size))
+				)
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
 				os.path.relpath(file_path, base)
 				))
 			logger.error(exception_format(err))
-			file = None
+			response = None
+		sys.stdout.write(u"\r\n")
 
-		if file != None:
+		if response != None:
+			logger.info(u"{0} bytes are transferred ({1} KB/s).".format(
+				total_size,
+				calculate_speed(start_time, 1, total_size))
+				)
 			logger.info(u"Upload `{0}' to `{1}/{2}' finished.".format(file_path,
 				self.remote_base,
 				os.path.relpath(file_path, base)
 				))
 			upload_return = GoogleDriveService.UPLOAD_DONE
 
-		return (file, upload_return)
+		return (response, upload_return)
 
 	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
 		(f, r) = self.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
