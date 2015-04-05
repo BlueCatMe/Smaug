@@ -227,14 +227,13 @@ class GoogleDriveService:
 				if status:
 					progress = status.progress()
 
-					sys.stdout.write(u"\rProgress {0}% ({1}/{2} bytes, {3} KB/s)".format(
+					sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
 						int(progress * 100),
 						int(total_size * progress),
 						total_size,
 						calculate_speed(start_time, progress, total_size))
 						)
 		except Exception, err:
-			sys.stdout.write(u"\r\n")
 			logger.error(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
 				int(total_size * progress),
 				total_size,
@@ -246,7 +245,6 @@ class GoogleDriveService:
 				))
 			logger.error(exception_format(err))
 			response = None
-		sys.stdout.write(u"\r\n")
 
 		if response != None:
 			logger.info(u"{0} bytes are transferred ({1} KB/s).".format(
