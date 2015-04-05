@@ -248,7 +248,7 @@ class GoogleDriveService:
 				upload_return = GoogleDriveService.UPLOAD_SERVICE_ERROR
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base)
+				os.path.relpath(file_path, base).replace(os.sep, '/')
 				))
 			logger.error(exception_format(err))
 			response = None
@@ -260,7 +260,7 @@ class GoogleDriveService:
 				)
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base)
+				os.path.relpath(file_path, base).replace(os.sep, '/')
 				))
 			logger.error(exception_format(err))
 			response = None
@@ -272,7 +272,7 @@ class GoogleDriveService:
 				)
 			logger.info(u"Upload `{0}' to `{1}/{2}' finished.".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base)
+				os.path.relpath(file_path, base).replace(os.sep, '/')
 				))
 			upload_return = GoogleDriveService.UPLOAD_DONE
 
