@@ -13,6 +13,7 @@ import argparse
 
 from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
+from apiclient import errors
 from oauth2client.client import *
 
 from oauth2client.file import Storage
@@ -47,6 +48,8 @@ class GoogleDriveService:
 	CREDENTIALS_EXPIRE_IN_SECOND = 3600
 
 	DEFAULT_CONFLICT_ACTION = u'skip'
+
+	DEFAULT_UPLOAD_RETRY_COUNT = 3
 
 	def __init__(self, json_path, cred_path):
 		self.data = []
@@ -171,6 +174,7 @@ class GoogleDriveService:
 	UPLOAD_SKIPPED		= 1
 	UPLOAD_DONE		= 0
 	UPLOAD_FAIL		= -1
+	UPLOAD_SERVICE_ERROR	= -2
 
 	def upload_file_raw(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
@@ -233,6 +237,21 @@ class GoogleDriveService:
 						total_size,
 						calculate_speed(start_time, progress, total_size))
 						)
+		except errors.HttpError, err:
+			logger.warn(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
+				int(total_size * progress),
+				total_size,
+				calculate_speed(start_time, progress, total_size))
+				)
+			if err.resp.status in [400, 500, 502, 503]:
+				logger.warn(u"Google Service error with status code {0}!".format(err.resp.status))
+				upload_return = GoogleDriveService.UPLOAD_SERVICE_ERROR
+			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
+				self.remote_base,
+				os.path.relpath(file_path, base)
+				))
+			logger.error(exception_format(err))
+			response = None
 		except Exception, err:
 			logger.error(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
 				int(total_size * progress),
@@ -260,10 +279,19 @@ class GoogleDriveService:
 		return (response, upload_return)
 
 	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
-		(f, r) = self.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
-		if f != None: # uploaded or skipped
-			if (r == GoogleDriveService.UPLOAD_DONE) or (r == GoogleDriveService.UPLOAD_SKIPPED and self.options[u'move_skipped_file']):
-				self.handle_uploaded_file(file_path, base=base)
+		retry_count = GoogleDriveService.DEFAULT_UPLOAD_RETRY_COUNT
+		while retry_count > 0:
+			(f, r) = self.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
+			if f != None: # uploaded or skipped
+				if (r == GoogleDriveService.UPLOAD_DONE) or (r == GoogleDriveService.UPLOAD_SKIPPED and self.options[u'move_skipped_file']):
+					self.handle_uploaded_file(file_path, base=base)
+				retry_count = 0
+			elif r == GoogleDriveService.UPLOAD_SERVICE_ERROR:
+				logger.error("Upload failed due to service error. Try it again..")
+				retry_count = retry_count - 1
+			else:
+				logger.error("Upload failed due to errors cannot be recovered. Give up.")
+				retry_count = 0
 		return (f, r)
 
 	def upload_folder(self, folder_path, parent_id=None, without_folders = False):
