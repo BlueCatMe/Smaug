@@ -270,8 +270,7 @@ class GoogleDriveService:
 				))
 			logger.error(exception_format(err))
 			response = None
-
-		if response != None:
+		else:
 			logger.info(u"{0} bytes are transferred ({1} KB/s).".format(
 				total_size,
 				calculate_speed(start_time, 1, total_size))
