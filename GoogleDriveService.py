@@ -222,21 +222,27 @@ class GoogleDriveService:
 		upload_return = GoogleDriveService.UPLOAD_FAIL
 		try:
 			self.service_refresh()
-			request = self.drive_service.files().insert(
-					body=body,
-					media_body=media_body,
-					convert=False)
-			while response is None:
-				status, response = request.next_chunk()
-				if status:
-					progress = status.progress()
+			if total_size == 0:
+				response = self.drive_service.files().insert(
+						body=body,
+						media_body=None,
+						convert=False).execute()
+			else:
+				request = self.drive_service.files().insert(
+						body=body,
+						media_body=media_body,
+						convert=False)
+				while response is None:
+					status, response = request.next_chunk()
+					if status:
+						progress = status.progress()
 
-					sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
-						int(progress * 100),
-						int(total_size * progress),
-						total_size,
-						calculate_speed(start_time, progress, total_size))
-						)
+						sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
+							int(progress * 100),
+							int(total_size * progress),
+							total_size,
+							calculate_speed(start_time, progress, total_size))
+							)
 		except errors.HttpError, err:
 			logger.warn(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
 				int(total_size * progress),
