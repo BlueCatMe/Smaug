@@ -244,13 +244,12 @@ class GoogleDriveService:
 							calculate_speed(start_time, progress, total_size))
 							)
 		except errors.HttpError, err:
-			logger.warn(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
+			logger.error(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
 				int(total_size * progress),
 				total_size,
 				calculate_speed(start_time, progress, total_size))
 				)
-			if err.resp.status in [400, 500, 502, 503]:
-				logger.warn(u"Google Service error with status code {0}!".format(err.resp.status))
+			if int(err.resp.status/100) == 5:
 				upload_return = GoogleDriveService.UPLOAD_SERVICE_ERROR
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
