@@ -71,7 +71,7 @@ upload DIR to GoogleDrive root, tree structure of DIR will be preserved.
 
 	% python --remote-folder upload/new FILE1 FILE2 DIR
 
-upload FILE1, FILE2, and DIR to GoogleDrive:/newly_upload/new.
+upload FILE1, FILE2, and DIR to GoogleDrive:/upload/new.
 
 	% python --move-to-backup-folder file.uploaded --conflict-action replace FILES DIRS
 
