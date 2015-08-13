@@ -23,7 +23,7 @@ stream_handler.setFormatter(stream_formatter)
 stream_handler.addFilter(StreamHandlerFilter())
 logger.addHandler(stream_handler)
 
-def process_argument(argv):
+def process_argument_upload(argv):
 
 	parser = argparse.ArgumentParser(description=u'Batch upload files to Google Drive')
 	parser.add_argument(u'targets', nargs=u'+',
@@ -49,12 +49,11 @@ def process_argument(argv):
 
 	return parser.parse_args(argv[1:])
 
-def main(argv):
+def upload(argv):
 
-	# translate encoding from file system to unicode.
-	argv = [a.decode(sys.getfilesystemencoding()) for a in argv]
+	logger.info(u"Processing UPLOAD")
 
-	options = process_argument(argv)
+	options = process_argument_upload(argv)
 	logger.debug(options)
 
 	credentials_storage_path = options.credentials_path
@@ -103,6 +102,19 @@ def main(argv):
 				ret_code = -os.errno.EIO
 
 	return ret_code
+
+def main(argv):
+
+	# translate encoding from file system to unicode.
+	argv = [a.decode(sys.getfilesystemencoding()) for a in argv]
+
+	action = argv[1]
+	logger.info(u"Action: {0}".format(action))
+
+	if action == u'upload':
+		upload(argv[1:])
+	else:
+		logger.error(u"Unknown action `{0}'".format(action))
 
 if __name__ == u"__main__":
 	main(sys.argv)
