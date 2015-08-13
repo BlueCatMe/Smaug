@@ -42,6 +42,8 @@ class GoogleDriveService:
 
 	MIMETYPE_BINARY = u'application/octet-stream'
 	MIMETYPE_FOLDER = u'application/vnd.google-apps.folder'
+	# for non-folder query
+	MIMETYPE_NON_FOLDER = u'anything_not_folder'
 
 	TRANSFER_CHUNK_SIZE = 1024*1024
 
@@ -153,6 +155,35 @@ class GoogleDriveService:
 			logger.warn(exception_format(err))
 			ret = False
 		return ret
+
+	def get_gdrive_items(self, title = None, parent_id = None, mimeType = None, trashed = False):
+
+		self.service_refresh()
+
+		if trashed:
+			query = u'trashed=true'
+		else:
+			query = u'trashed=false'
+
+		if bool(title):
+			query += u' and title=\"{0}\"'.format(title)
+
+		if mimeType == GoogleDriveService.MIMETYPE_NON_FOLDER:
+			query += u' and mimeType!=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
+		elif mimeType != None:
+			query += u' and mimeType=\"{0}\"'.format(mimeType)
+
+		if parent_id != None:
+			query += u' and \"{0}\" in parents'.format(parent_id)
+
+		results = self.drive_service.files().list(q=query).execute()
+		items = results[u'items']
+		num = len(items)
+		if bool(title) and num > 1:
+			logger.warn(u"Find {0} items with the same title, `{1}'".format(num, title))
+
+		return items
+
 
 	def handle_uploaded_file(self, file_path, base = None):
 		if base == None:
@@ -323,6 +354,74 @@ class GoogleDriveService:
 
 		return folder_result
 
+	def list(self, path, parent_id = None):
+
+		logger.debug(u"List {0}".format(path));
+
+		names = path.split(u'/')
+
+		# remove root directory empty name or current directory name, '.'
+		if names[0] in [u'.', u'']:
+			del names[0]
+
+		if parent_id == None:
+			parent_item = {
+					u'id'	: u'root',
+					u'title': u'root'
+					}
+		else:
+			parent_item = {
+					u'id'	: parent_id,
+					u'title': parent_id,
+					}
+
+		# get the last name to later process.
+		target = names.pop()
+
+		# check parent path first to get parent id.
+		found_names = []
+		for i in range(0, len(names)):
+			name = names[i]
+			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
+			if len(items) > 0:
+				parent_item = items[0]
+				found_names.append(name)
+			else:
+				logger.info(u"Cannot find `{0}' in `{1}'".format(name, u'/'.join(found_names)))
+				return ([], [])
+
+		logger.info(u'target = {0}'.format(target))
+		# ls /xxx/yyy/zzz, check zzz is a folder or a file.
+		if bool(target):
+			items = self.get_gdrive_items(title = target, parent_id = parent_item['id']);
+			if len(items) > 0:
+				item = items[0]
+
+				# target is a folder, list it again.
+				if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
+					logger.info(u'Target {0} is a folder, list it again'.format(target))
+					parent_item = item;
+					found_names.append(target)
+
+					items = self.get_gdrive_items(parent_id = parent_item['id']);
+			else:
+				logger.info(u"Cannot find `{0}' in `{1}'".format(target, u'/'.join(found_names)))
+				return ([], [])
+		# ls /xxx/yyy/zzz/, treat zzz as a folder.
+		else:
+			logger.debug(u'List a folder')
+			items = self.get_gdrive_items(parent_id = parent_item['id']);
+
+		dirs = []
+		files = []
+		for item in items:
+			if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
+				dirs.append(item)
+			else:
+				files.append(item)
+
+		return (dirs,files)
+
 	def upload(self, path, remote_folder = None, without_folders = False):
 
 		result = False
@@ -378,12 +477,7 @@ class GoogleDriveService:
 
 		for name in names:
 			self.service_refresh()
-			query = u'trashed=false'
-			query += u' and title=\"{0}\"'.format(name)
-			query += u' and mimeType=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
-			query += u' and \"{0}\" in parents'.format(parent_item['id'])
-			results = self.drive_service.files().list(q=query).execute()
-			items = results[u'items']
+			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
 			num = len(items)
 			# create a folder
 			if num == 0:
@@ -398,9 +492,6 @@ class GoogleDriveService:
 				logger.info(u"Create folder: {0}".format(name))
 			else:
 				parent_item = items[0]
-
-			if num > 1:
-				logger.warn(u"Find multiple folder with the same title, `{0}'".format(name))
 
 		if parent_item != None:
 			self.remote_folder_data_cache[folder_path] = parent_item
@@ -420,15 +511,9 @@ class GoogleDriveService:
 					u'title': parent_id,
 					}
 
-		query = u'trashed=false'
-		query += u' and title=\"{0}\"'.format(title)
-		query += u' and mimeType!=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
-		query += u' and \"{0}\" in parents'.format(parent_item['id'])
+		items = self.get_gdrive_items(title = title, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
 
-		self.service_refresh()
-		results = self.drive_service.files().list(q=query).execute()
-
-		return results[u'items']
+		return items
 
 
 	def get_folder_by_path(self, folder_path, parent_id = None):
@@ -460,20 +545,12 @@ class GoogleDriveService:
 		# start from root
 		for name in names:
 			self.service_refresh()
-			query = u'trashed=false'
-			query += u' and title=\"{0}\"'.format(name)
-			query += u' and mimeType=\"{0}\"'.format(GoogleDriveService.MIMETYPE_FOLDER)
-			query += u' and \"{0}\" in parents'.format(parent_item['id'])
-			results = self.drive_service.files().list(q=query).execute()
-			items = results[u'items']
+			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
 			num = len(items)
 			if num == 0:
 				logger.info(u"Cannot find `{0}'".format(name))
 				parent_item = None
 				break
-
-			if num > 1:
-				logger.warn(u"Find multiple folder with the same title, `{0}'".format(name))
 
 			parent_item = items[0]
 
