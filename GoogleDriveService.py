@@ -12,7 +12,7 @@ import pprint
 import argparse
 
 from apiclient.discovery import build
-from apiclient.http import MediaFileUpload
+from apiclient.http import MediaFileUpload, MediaIoBaseDownload
 from apiclient import errors
 from oauth2client.client import *
 
@@ -45,7 +45,8 @@ class GoogleDriveService:
 	# for non-folder query
 	MIMETYPE_NON_FOLDER = u'anything_not_folder'
 
-	TRANSFER_CHUNK_SIZE = 1024*1024
+	UPLOAD_TRANSFER_CHUNK_SIZE = 10*1024*1024
+	DOWNLOAD_TRANSFER_CHUNK_SIZE = 10*1024*1024
 
 	CREDENTIALS_EXPIRE_IN_SECOND = 3600
 
@@ -156,6 +157,18 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
+	def get(self, id):
+
+		self.service_refresh()
+
+		item = None
+		try:
+			item = self.drive_service.files().get(fileId=id).execute()
+		except errors.HttpError, error:
+			logger.error(u'Http Error: {0}'.format(error))
+
+		return item
+
 	def get_gdrive_items(self, title = None, parent_id = None, mimeType = None, trashed = False):
 
 		self.service_refresh()
@@ -235,7 +248,7 @@ class GoogleDriveService:
 		# Insert a file
 		media_body = MediaFileUpload(file_path,
 				mimetype=mimetype,
-				chunksize=GoogleDriveService.TRANSFER_CHUNK_SIZE,
+				chunksize=GoogleDriveService.UPLOAD_TRANSFER_CHUNK_SIZE,
 				resumable=True)
 
 		body = {
@@ -274,6 +287,7 @@ class GoogleDriveService:
 							total_size,
 							calculate_speed(start_time, progress, total_size))
 							)
+						sys.stdout.flush()
 		except errors.HttpError, err:
 			logger.error(u"Only {0}/{1} bytes are transferred ({2} KB/s).".format(
 				int(total_size * progress),
@@ -354,15 +368,8 @@ class GoogleDriveService:
 
 		return folder_result
 
-	def list(self, path, parent_id = None):
+	def list(self, path = None, parent_id = None):
 
-		logger.debug(u"List {0}".format(path));
-
-		names = path.split(u'/')
-
-		# remove root directory empty name or current directory name, '.'
-		if names[0] in [u'.', u'']:
-			del names[0]
 
 		if parent_id == None:
 			parent_item = {
@@ -375,41 +382,53 @@ class GoogleDriveService:
 					u'title': parent_id,
 					}
 
-		# get the last name to later process.
-		target = names.pop()
+		if path != None:
+			logger.debug(u"List {0}".format(path));
 
-		# check parent path first to get parent id.
-		found_names = []
-		for i in range(0, len(names)):
-			name = names[i]
-			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
-			if len(items) > 0:
-				parent_item = items[0]
-				found_names.append(name)
+			names = path.split(u'/')
+
+			# remove root directory empty name or current directory name, '.'
+			if names[0] in [u'.', u'']:
+				del names[0]
+
+			# get the last name to later process.
+			target = names.pop()
+
+			# check parent path first to get parent id.
+			found_names = []
+			for i in range(0, len(names)):
+				name = names[i]
+				items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
+				if len(items) > 0:
+					parent_item = items[0]
+					found_names.append(name)
+				else:
+					logger.info(u"Cannot find `{0}' in `{1}'".format(name, u'/'.join(found_names)))
+					return ([], [])
+
+			logger.info(u'target = {0}'.format(target))
+			# ls /xxx/yyy/zzz, check zzz is a folder or a file.
+			if bool(target):
+				items = self.get_gdrive_items(title = target, parent_id = parent_item['id']);
+				if len(items) > 0:
+					item = items[0]
+
+					# target is a folder, list it again.
+					if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
+						logger.info(u'Target {0} is a folder, list it again'.format(target))
+						parent_item = item;
+						found_names.append(target)
+
+						items = self.get_gdrive_items(parent_id = parent_item['id']);
+				else:
+					logger.info(u"Cannot find `{0}' in `{1}'".format(target, u'/'.join(found_names)))
+					return ([], [])
+			# ls /xxx/yyy/zzz/, treat zzz as a folder.
 			else:
-				logger.info(u"Cannot find `{0}' in `{1}'".format(name, u'/'.join(found_names)))
-				return ([], [])
-
-		logger.info(u'target = {0}'.format(target))
-		# ls /xxx/yyy/zzz, check zzz is a folder or a file.
-		if bool(target):
-			items = self.get_gdrive_items(title = target, parent_id = parent_item['id']);
-			if len(items) > 0:
-				item = items[0]
-
-				# target is a folder, list it again.
-				if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
-					logger.info(u'Target {0} is a folder, list it again'.format(target))
-					parent_item = item;
-					found_names.append(target)
-
-					items = self.get_gdrive_items(parent_id = parent_item['id']);
-			else:
-				logger.info(u"Cannot find `{0}' in `{1}'".format(target, u'/'.join(found_names)))
-				return ([], [])
-		# ls /xxx/yyy/zzz/, treat zzz as a folder.
+				logger.debug(u'List a folder')
+				items = self.get_gdrive_items(parent_id = parent_item['id']);
 		else:
-			logger.debug(u'List a folder')
+			logger.debug(u'List items with parent id')
 			items = self.get_gdrive_items(parent_id = parent_item['id']);
 
 		dirs = []
@@ -559,3 +578,73 @@ class GoogleDriveService:
 			self.remote_folder_data_cache[path] = parent_item
 
 		return parent_item
+
+	def download_file_chunk(self, file_id, base_path = None):
+
+		item = self.get(file_id)
+		if item == None:
+			return None
+
+		if base_path:
+			full_path = os.sep.join([base_path.rstrip(os.sep), item[u'title']])
+			if not os.path.exists(base_path):
+				os.makedirs(base_path)
+		else:
+			full_path = os.sep.join([u'.', item[u'title']])
+
+		fd = open(full_path, u'w')
+
+		request = self.drive_service.files().get_media(fileId=file_id)
+		media_request = MediaIoBaseDownload(fd, request, chunksize=GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE)
+
+		start_time = datetime.datetime.now()
+		total_size = int(item[u'fileSize'])
+		while True:
+			try:
+				download_progress, done = media_request.next_chunk()
+			except errors.HttpError, error:
+				logger.error(u'Http Error: {0}'.format(error))
+				return
+
+			if download_progress:
+				progress = download_progress.progress()
+				sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
+							int(progress * 100),
+							int(total_size * progress),
+							total_size,
+							calculate_speed(start_time, progress, total_size))
+							)
+				sys.stdout.flush()
+			if done:
+				break
+				logger.info(u'Download Complete')
+		return
+
+	def download_file(self, file_id, base_path = None):
+
+		item = self.get(file_id)
+		if item == None:
+			return None
+
+		download_url = item.get(u'downloadUrl')
+		if download_url:
+			resp, content = self.drive_service._http.request(download_url)
+			if resp.status == 200:
+				if base_path:
+					full_path = os.sep.join([base_path.rstrip(os.sep), item[u'title']])
+					if not os.path.exists(base_path):
+						os.makedirs(base_path)
+				else:
+					full_path = os.sep.join([u'.', item[u'title']])
+
+				f = open(full_path, u'w')
+				f.write(content)
+				f.close
+
+				return full_path
+			else:
+				logger.error(u'An error occurred: {0}'.format(resp))
+				return None
+		else:
+			# The file doesn't have any content stored on Drive.
+			return None

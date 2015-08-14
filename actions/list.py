@@ -27,9 +27,9 @@ class List(ActionBase):
 			prefix = u'f'
 
 		if (options.long):
-			print u"{0}\t{1}\t{2}".format(prefix, item[u'id'], item[u'title'])
+			print u"{0}\t{1}\t{2}".format(prefix, item[u'id'], item[u'title']).encode('utf-8')
 		else:
-			print u"{0}\t{1}".format(prefix, item[u'title'])
+			print u"{0}\t{1}".format(prefix, item[u'title']).encode('utf-8')
 
 	def execute(self, options):
 
@@ -44,7 +44,7 @@ class List(ActionBase):
 		dirs = results[0]
 		files = results[1]
 		if (options.long):
-			print u"{0} dir(s), {1} file(s), Total {2} item(s)".format(len(dirs), len(files), len(dirs) + len(files))
+			print u"{0} dir(s), {1} file(s), Total {2} item(s)".format(len(dirs), len(files), len(dirs) + len(files)).encode('utf-8')
 		for f in dirs:
 			self.print_list_item(f, options, True)
 		for f in files:
