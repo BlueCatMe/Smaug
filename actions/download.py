@@ -21,8 +21,23 @@ class Download(ActionBase):
 				help=u"The local folder path to store downloaded files separated by '{0}'.".format(os.sep))
 
 	def download_file(self, item, base_path = None):
+
+		if base_path:
+			file_path = os.sep.join([base_path.rstrip(os.sep), item[u'title']])
+			if not os.path.exists(base_path):
+				os.makedirs(base_path)
+		else:
+			file_path = os.sep.join([u'.', item[u'title']])
+
 		logger.info(u'Donwloading a file: {0}'.format(item[u'title']))
-		return self.service.download_file_chunk(item[u'id'], base_path)
+		tmp_path = file_path + ".tmp"
+		tmp_path = self.service.download_file(item[u'id'], tmp_path)
+		if tmp_path:
+			try:
+				os.rename(tmp_path, file_path)
+				logger.info(u"Download {0} to {1} successfully.".format(item[u'title'], file_path));
+			except OSError, err:
+				logger.warn(u"Cannot rename {0} to {1}.".format(item[u'title'], file_path));
 
 	def download_folder(self, item, base_path = None):
 		logger.info(u'Donwloading a folder: {0}'.format(item[u'title']))

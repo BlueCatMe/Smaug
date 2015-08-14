@@ -3,6 +3,7 @@
 
 import os
 import sys
+import re
 import traceback
 import logging
 
@@ -325,6 +326,9 @@ class GoogleDriveService:
 				))
 			upload_return = GoogleDriveService.UPLOAD_DONE
 
+		if response:
+			logger.info(u'Total {0} bytes are uploaded.'.format(total_size))
+
 		return (response, upload_return)
 
 	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
@@ -579,20 +583,13 @@ class GoogleDriveService:
 
 		return parent_item
 
-	def download_file_chunk(self, file_id, base_path = None):
+	def download_file_chunk(self, file_id, file_path):
 
 		item = self.get(file_id)
 		if item == None:
 			return None
 
-		if base_path:
-			full_path = os.sep.join([base_path.rstrip(os.sep), item[u'title']])
-			if not os.path.exists(base_path):
-				os.makedirs(base_path)
-		else:
-			full_path = os.sep.join([u'.', item[u'title']])
-
-		fd = open(full_path, u'w')
+		fd = open(file_path, u'w')
 
 		request = self.drive_service.files().get_media(fileId=file_id)
 		media_request = MediaIoBaseDownload(fd, request, chunksize=GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE)
@@ -620,31 +617,75 @@ class GoogleDriveService:
 				logger.info(u'Download Complete')
 		return
 
-	def download_file(self, file_id, base_path = None):
+	def download_file(self, file_id, file_path):
+
+		ret = None
 
 		item = self.get(file_id)
 		if item == None:
 			return None
 
+		ret = file_path
+
 		download_url = item.get(u'downloadUrl')
+		start_time = datetime.datetime.now()
+		total_size = int(item[u'fileSize'])
+		downloaded_size = 0
 		if download_url:
-			resp, content = self.drive_service._http.request(download_url)
-			if resp.status == 200:
-				if base_path:
-					full_path = os.sep.join([base_path.rstrip(os.sep), item[u'title']])
-					if not os.path.exists(base_path):
-						os.makedirs(base_path)
+
+			f = open(file_path, u'w')
+			while downloaded_size < total_size:
+				self.service_refresh()
+
+				start_byte = downloaded_size
+				end_byte = downloaded_size + GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE -1
+				if total_size - downloaded_size < GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE:
+					end_byte = downloaded_size + (total_size - downloaded_size) - 1
+
+				resp, content = self.drive_service._http.request(download_url,
+						headers = {u'Range': u'bytes={0}-{1}'.format(start_byte, end_byte)})
+
+				if resp.status == 200:
+					f.write(content)
+					downloaded_size = int(resp[u'content-length'])
+					break
+
+				elif resp.status == 206:
+					downloaded_chunk_size = None
+					if u'content-length' in resp:
+						downloaded_chunk_size = int(resp[u'content-length'])
+					# Ex: 'content-range': 'bytes 10485760-20971519/27771630'
+					elif u'content-range' in resp:
+						range_data = re.split('[ -/]', resp[u'content-range'])
+						downloaded_chunk_size = int(range_data[2]) - int(range_data[1]) + 1
+
+					f.write(content)
+					downloaded_size += downloaded_chunk_size
+
+					progress = float(downloaded_size)/total_size
+					sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
+								int(progress * 100),
+								int(total_size * progress),
+								total_size,
+								calculate_speed(start_time, progress, total_size))
+								)
+					sys.stdout.flush()
+
 				else:
-					full_path = os.sep.join([u'.', item[u'title']])
-
-				f = open(full_path, u'w')
-				f.write(content)
-				f.close
-
-				return full_path
+					logger.error(u'An error occurred: {0}'.format(resp))
+					ret = None
+					break
+			f.close()
+			if downloaded_size != total_size:
+				logger.warn("Downloaded size, {0} bytes, does not match total size, {1} bytes".format(downloaded_size, total_size))
+				ret = None
+			elif (os.stat(file_path).st_size != total_size):
+				logger.warn("Written size, {0} bytes, does not match total size, {1} bytes".format(os.stat(file_path).st_size, total_size))
+				ret = None
 			else:
-				logger.error(u'An error occurred: {0}'.format(resp))
-				return None
+				logger.info(u'Total {0}/{0} bytes are downloaded.'.format(downloaded_size, total_size))
 		else:
-			# The file doesn't have any content stored on Drive.
-			return None
+			logger.error(u'The file doesn\'t have any content stored on Drive.');
+			ret = None
+
+		return ret
