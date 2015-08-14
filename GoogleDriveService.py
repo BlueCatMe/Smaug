@@ -516,17 +516,15 @@ class GoogleDriveService:
 		return items
 
 
-	def get_folder_by_path(self, folder_path, parent_id = None):
+	def get_item_by_path(self, path, parent_id = None):
 
-		folder_path = folder_path.rstrip(os.sep)
+		path = path.rstrip(os.sep)
 
-		parent_folder_path = os.path.dirname(folder_path)
-		if parent_folder_path in self.remote_folder_data_cache:
-			logger.debug(u"`{0}' id query is cached hit.".format(parent_folder_path))
-			parent_id = self.remote_folder_data_cache[parent_folder_path]['id']
-			names = os.path.relpath(folder_path, parent_folder_path).split(os.sep)
+		if path in self.remote_folder_data_cache:
+			logger.debug(u"`{0}' query is cached hit.".format(path))
+			return self.remote_folder_data_cache;
 		else:
-			names = folder_path.split(os.sep)
+			names = path.split(os.sep)
 
 		# remove root directory empty name or current directory name, '.'
 		if names[0] in [u'.', u'']:
@@ -543,9 +541,12 @@ class GoogleDriveService:
 					u'title': parent_id,
 					}
 		# start from root
-		for name in names:
+		found_names = []
+		found_item = None
+		while len(names) > 0:
+			name = names.pop(0)
 			self.service_refresh()
-			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
+			items = self.get_gdrive_items(title = name, parent_id = parent_item['id']);
 			num = len(items)
 			if num == 0:
 				logger.info(u"Cannot find `{0}'".format(name))
@@ -555,6 +556,6 @@ class GoogleDriveService:
 			parent_item = items[0]
 
 		if parent_item != None:
-			self.remote_folder_data_cache[folder_path] = parent_item
+			self.remote_folder_data_cache[path] = parent_item
 
 		return parent_item
