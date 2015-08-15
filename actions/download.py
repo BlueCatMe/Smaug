@@ -116,15 +116,25 @@ class Download(ActionBase):
 		else:
 			logger.error(u"Download {0} to {1} failed.".format(item[u'title'], file_path))
 
+		return ret
+
 	def download_folder(self, item, base_path = None):
 		logger.info(u'Donwloading a folder: {0}'.format(item[u'title']))
 
 		(dirs, files) = self.service.list(parent_id=item[u'id'])
 
+		ret = True
 		for f in files:
-			self.download_file(f, os.sep.join([base_path, item[u'title']]))
+			ret = self.download_file(f, os.sep.join([base_path, item[u'title']]))
+			if not ret:
+				logger.error(u'Download a file failed, stop it.')
+				break
 		for d in dirs:
-			self.download_folder(d, os.sep.join([base_path, item[u'title']]))
+			ret = self.download_folder(d, os.sep.join([base_path, item[u'title']]))
+			if not ret:
+				logger.error(u'Download a folder failed, stop it.')
+				break
+		return ret
 
 	def execute(self, options):
 
@@ -138,9 +148,11 @@ class Download(ActionBase):
 
 		item = self.service.get_item_by_path(options.target)
 		if item == None:
-			return -1
+			return False
 
+		ret = True
 		if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
-			self.download_folder(item, base_path)
+			ret = self.download_folder(item, base_path)
 		else:
-			self.download_file(item, base_path)
+			ret = self.download_file(item, base_path)
+		return ret
