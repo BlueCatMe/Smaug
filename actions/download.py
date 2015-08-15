@@ -31,6 +31,9 @@ class Download(ActionBase):
 		parser.add_argument(u'--remove-incorrect-download', action=u'store_true',
 				default=False, help=u"Remove incorrect downloaded files.")
 
+		parser.add_argument(u'--conflict-action', default=u'skip', choices=[u'skip', u'add', u'skip_strict'],
+				help=u"How to handle existing file with the same title")
+
 	def handle_incorrect_downloaded_file(self, tmp_path):
 		if not os.path.isfile(tmp_path):
 			logger.error(u'{0} does not exist!'.format(tmp_path))
@@ -76,6 +79,28 @@ class Download(ActionBase):
 				os.makedirs(base_path)
 		else:
 			file_path = os.sep.join([u'.', item[u'title']])
+
+		if os.path.isfile(file_path):
+			logger.info(u'{0} exists.'.format(file_path))
+			if self.options.conflict_action == u'add':
+				index = 1
+				while os.path.isfile(u'{0}.{1}'.format(file_path, index)):
+					index = index + 1
+				new_path = u'{0}.{1}'.format(file_path, index)
+				logger.info(u'save to {1}'.format(new_path))
+				file_path = new_path
+			elif self.options.conflict_action == u'skip':
+				logger.info(u'skip it')
+				return True
+			elif self.options.conflict_action == u'skip_strict':
+				md5sum = md5sum_file(file_path)
+				logger.debug(u'ITEM MD5 sum {0}'.format(item[u'md5Checksum']))
+				logger.debug(u'FILE MD5 sum {0}'.format(md5sum))
+				if item[u'md5Checksum'] == md5sum:
+					logger.info(u'MD5 checksum is the same, skip it')
+					return True
+				else:
+					logger.info(u'MD5 checksum is different, replace it')
 
 		logger.info(u'Donwloading a file: {0}'.format(item[u'title']))
 		tmp_path = file_path + ".tmp"
