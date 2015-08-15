@@ -55,6 +55,8 @@ class GoogleDriveService:
 
 	DEFAULT_UPLOAD_RETRY_COUNT = 3
 
+	DEFAULT_DOWNLOAD_RETRY_COUNT = 3
+
 	def __init__(self, json_path, cred_path):
 		self.data = []
 		# internal resources
@@ -631,6 +633,7 @@ class GoogleDriveService:
 		downloaded_size = 0
 		if download_url:
 
+			retry = GoogleDriveService.DEFAULT_DOWNLOAD_RETRY_COUNT
 			f = open(file_path, u'w')
 			while downloaded_size < total_size:
 				self.service_refresh()
@@ -640,10 +643,19 @@ class GoogleDriveService:
 				if total_size - downloaded_size < GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE:
 					end_byte = downloaded_size + (total_size - downloaded_size) - 1
 
-				resp, content = self.drive_service._http.request(download_url,
+				resp = None
+				content = None
+				try:
+					resp, content = self.drive_service._http.request(download_url,
 						headers = {u'Range': u'bytes={0}-{1}'.format(start_byte, end_byte)})
+				except httplib.IncompleteRead, err:
+					logger.warn(u'IncompleteRead Exception: {0}'.format(err))
+					resp = None
 
-				if resp.status == 200:
+				if resp == None:
+					logger.warn(u'HTTP request error')
+
+				elif resp.status == 200:
 					f.write(content)
 					downloaded_size = int(resp[u'content-length'])
 					break
@@ -669,16 +681,25 @@ class GoogleDriveService:
 								)
 					sys.stdout.flush()
 
+					retry = GoogleDriveService.DEFAULT_DOWNLOAD_RETRY_COUNT
+					continue
+
 				else:
-					logger.error(u'An error occurred: {0}'.format(resp))
+					logger.warn(u'An error occurred: {0}'.format(resp))
+
+				# Only fail case go here!
+				retry = retry - 1
+				logger.warn(u'Download byte {0} - {1} failed. Remaining retry count: {2}'.format(start_byte, end_byte, retry))
+				if retry == 0:
+					logger.error(u'Retry over {0} times, give up'.format(GoogleDriveService.DEFAULT_DOWNLOAD_RETRY_COUNT))
 					ret = False
 					break
 			f.close()
 			if downloaded_size != total_size:
-				logger.warn("Downloaded size, {0} bytes, does not match total size, {1} bytes".format(downloaded_size, total_size))
+				logger.error("Downloaded size, {0} bytes, does not match total size, {1} bytes".format(downloaded_size, total_size))
 				ret = False
 			elif (os.stat(file_path).st_size != total_size):
-				logger.warn("Written size, {0} bytes, does not match total size, {1} bytes".format(os.stat(file_path).st_size, total_size))
+				logger.error("Written size, {0} bytes, does not match total size, {1} bytes".format(os.stat(file_path).st_size, total_size))
 				ret = False
 			else:
 				logger.info(u'Total {0}/{0} bytes are downloaded.'.format(downloaded_size, total_size))

@@ -89,7 +89,7 @@ class Download(ActionBase):
 		if ret:
 			logger.info(u"Download {0} to {1} successfully.".format(item[u'title'], file_path))
 		else:
-			logger.info(u"Download {0} to {1} failed.".format(item[u'title'], file_path))
+			logger.error(u"Download {0} to {1} failed.".format(item[u'title'], file_path))
 
 	def download_folder(self, item, base_path = None):
 		logger.info(u'Donwloading a folder: {0}'.format(item[u'title']))
