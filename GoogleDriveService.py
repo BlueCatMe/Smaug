@@ -619,13 +619,11 @@ class GoogleDriveService:
 
 	def download_file(self, file_id, file_path):
 
-		ret = None
+		ret = True
 
 		item = self.get(file_id)
 		if item == None:
-			return None
-
-		ret = file_path
+			return False
 
 		download_url = item.get(u'downloadUrl')
 		start_time = datetime.datetime.now()
@@ -673,19 +671,19 @@ class GoogleDriveService:
 
 				else:
 					logger.error(u'An error occurred: {0}'.format(resp))
-					ret = None
+					ret = False
 					break
 			f.close()
 			if downloaded_size != total_size:
 				logger.warn("Downloaded size, {0} bytes, does not match total size, {1} bytes".format(downloaded_size, total_size))
-				ret = None
+				ret = False
 			elif (os.stat(file_path).st_size != total_size):
 				logger.warn("Written size, {0} bytes, does not match total size, {1} bytes".format(os.stat(file_path).st_size, total_size))
-				ret = None
+				ret = False
 			else:
 				logger.info(u'Total {0}/{0} bytes are downloaded.'.format(downloaded_size, total_size))
 		else:
 			logger.error(u'The file doesn\'t have any content stored on Drive.');
-			ret = None
+			ret = False
 
 		return ret
