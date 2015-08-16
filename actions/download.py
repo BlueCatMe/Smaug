@@ -34,6 +34,9 @@ class Download(ActionBase):
 		parser.add_argument(u'--conflict-action', default=u'skip', choices=[u'skip', u'add', u'skip_strict'],
 				help=u"How to handle existing file with the same title")
 
+		parser.add_argument(u'--try-to-resume', action=u'store_true',
+				default=False, help=u"Try to resume interrupted download.")
+
 	def handle_incorrect_downloaded_file(self, tmp_path):
 		if not os.path.isfile(tmp_path):
 			logger.error(u'{0} does not exist!'.format(tmp_path))
@@ -106,7 +109,7 @@ class Download(ActionBase):
 		tmp_path = file_path + ".tmp"
 
 		ret = False
-		if self.service.download_file(item[u'id'], tmp_path):
+		if self.service.download_file(item[u'id'], tmp_path, try_to_resume = self.options.try_to_resume):
 			ret = self.handle_downloaded_file(item, tmp_path, file_path)
 		else:
 			self.handle_incorrect_downloaded_file(tmp_path)

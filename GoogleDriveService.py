@@ -620,7 +620,7 @@ class GoogleDriveService:
 				logger.info(u'Download Complete')
 		return
 
-	def download_file(self, file_id, file_path):
+	def download_file(self, file_id, file_path, try_to_resume = False):
 
 		ret = True
 
@@ -629,13 +629,18 @@ class GoogleDriveService:
 			return False
 
 		download_url = item.get(u'downloadUrl')
-		start_time = datetime.datetime.now()
-		total_size = int(item[u'fileSize'])
-		downloaded_size = 0
 		if download_url:
 
+			start_time = datetime.datetime.now()
+			total_size = int(item[u'fileSize'])
 			retry = GoogleDriveService.DEFAULT_DOWNLOAD_RETRY_COUNT
-			f = open(file_path, u'w')
+
+			if try_to_resume and os.path.isfile(file_path):
+				f = open(file_path, u'ab')
+				downloaded_size = os.path.getsize(file_path)
+			else:
+				f = open(file_path, u'wb')
+				downloaded_size = 0
 			while downloaded_size < total_size:
 				self.service_refresh()
 
