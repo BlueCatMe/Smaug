@@ -20,4 +20,4 @@ fi
 BACKUP_FOLDER=$SRC.uploaded
 UPLOAD_LOG=$SRC.upload.log
 
-python "$SCRIPT_PATH/main.py" "$SRC" --remote-folder "$DEST" --move-to-backup-folder "$BACKUP_FOLDER" --move-skipped-file --log-file "$UPLOAD_LOG"
+python "$SCRIPT_PATH/main.py" upload "$SRC" --remote-folder "$DEST" --move-to-backup-folder "$BACKUP_FOLDER" --move-skipped-file --log-file "$UPLOAD_LOG"
