@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 class List(ActionBase):
 	def update_argparser(self, parser, argv):
 
-		parser.add_argument(u'target',
-				help=u"target path, can be files or folders")
-
 		parser.add_argument(u'--long', action='store_true',
 				default=False, help=u"Use a long listing format.")
 

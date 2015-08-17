@@ -19,9 +19,6 @@ class Download(ActionBase):
 
 	def update_argparser(self, parser, argv):
 
-		parser.add_argument(u'target',
-				help=u"target path, can be files or folders")
-
 		parser.add_argument(u'--output-folder', default=None,
 				help=u"The local folder path to store downloaded files separated by '{0}'.".format(os.sep))
 

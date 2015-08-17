@@ -40,6 +40,10 @@ def prepare_argparse_common(parser, argv):
 	parser.add_argument(u'--log-file', default=None,
 			help=u"The remote folder path to upload the documents separated by '/'.")
 
+	parser.add_argument(u'target',
+			help=u"target path, can be files or folders")
+
+
 def handle_options_common(options):
 	if options.log_file != None:
 		file_handler = logging.FileHandler(options.log_file, mode = u'w', encoding = u'utf-8')
@@ -54,7 +58,7 @@ def main(argv):
 	argv = [a.decode(sys.getfilesystemencoding()) for a in argv]
 
 	# prepare common argument parser and help printer
-	parser = argparse.ArgumentParser(description=u'Google Drive CLI')
+	parser = argparse.ArgumentParser(description=u'GoogleDrive CLI "Smaug"')
 	prepare_argparse_common(parser, argv)
 
 	if len(argv) < 2:

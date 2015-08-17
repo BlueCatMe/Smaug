@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 class Upload(ActionBase):
 	def update_argparser(self, parser, argv):
 
-		parser.add_argument(u'targets', nargs=u'+',
-				help=u"target path, can be files or folders")
-
 		parser.add_argument(u'--without-folders', action='store_true',
 				default=False, help=u"Do not recreate folder structure in Google Drive.")
 		parser.add_argument(u'--move-to-backup-folder', default=None,
@@ -39,14 +36,13 @@ class Upload(ActionBase):
 		self.service.options[u'move_skipped_file'] = options.move_skipped_file
 
 		ret_code = 0
-		for target in options.targets:
-			result = self.service.upload(target,
-				remote_folder=options.remote_folder,
-				without_folders=options.without_folders)
-			if result == True:
-				logger.info(u"Uploading `{0}' successed.".format(target));
-			else:
-				logger.warn(u"Uploading `{0}' failed.".format(target));
-				ret_code = -os.errno.EIO
+		result = self.service.upload(options.target,
+			remote_folder=options.remote_folder,
+			without_folders=options.without_folders)
+		if result == True:
+			logger.info(u"Uploading `{0}' successed.".format(options.target));
+		else:
+			logger.warn(u"Uploading `{0}' failed.".format(options.target));
+			ret_code = -os.errno.EIO
 
 		return ret_code
