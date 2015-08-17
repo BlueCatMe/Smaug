@@ -10,6 +10,8 @@ from ActionBase import get_actions, get_action
 
 from GoogleDriveService import *
 
+from utils import getfilesystemencoding
+
 CLIENT_SECRET_JSON_FILENAME = u'client_secret.json'
 CREDENTIALS_STORAGE_FILENAME = u'default.cred'
 
@@ -55,7 +57,9 @@ def handle_options_common(options):
 def main(argv):
 
 	# translate encoding from file system to unicode.
-	argv = [a.decode(sys.getfilesystemencoding()) for a in argv]
+	# pyinstaller will cause os.getfilesystemencoding() return None.
+	# wrapper it into a function to return 'UTF-8' by default.
+	argv = [a.decode(getfilesystemencoding()) for a in argv]
 
 	# prepare common argument parser and help printer
 	parser = argparse.ArgumentParser(description=u'GoogleDrive CLI "Smaug"')

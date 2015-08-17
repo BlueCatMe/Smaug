@@ -20,6 +20,8 @@ from oauth2client.client import *
 
 from oauth2client.file import Storage
 
+from utils import getfilesystemencoding
+
 logger = logging.getLogger(__name__)
 
 def calculate_speed(start_time, progress, total_size, base = 1024):
@@ -31,7 +33,7 @@ def calculate_speed(start_time, progress, total_size, base = 1024):
 def exception_format(exc):
 	return u"{0}({1})".format(
 			type(exc).__name__,
-			str(exc).decode(sys.getfilesystemencoding())
+			str(exc).decode(getfilesystemencoding())
 			);
 
 class GoogleDriveService:
