@@ -17,3 +17,10 @@ def getfilesystemencoding():
 	if encoding == None:
 		encoding = u'UTF-8'
 	return encoding
+
+def sizeof_fmt(num, suffix=u'B'):
+	for unit in [u'',u'Ki',u'Mi',u'Gi',u'Ti',u'Pi',u'Ei',u'Zi']:
+		if abs(num) < 1024.0:
+			return u"%3.1f%s%s" % (num, unit, suffix)
+		num /= 1024.0
+	return u"%.1f%s%s" % (num, u'Yi', suffix)

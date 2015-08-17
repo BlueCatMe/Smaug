@@ -5,8 +5,14 @@ import os
 import sys
 import logging
 
+import datetime
+import dateutil.parser
+import dateutil.tz
+
 from ActionBase import register_action, ActionBase
 from GoogleDriveService import *
+
+from utils import sizeof_fmt
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +30,19 @@ class List(ActionBase):
 			prefix = u'f'
 
 		if (options.long):
-			print u"{0}\t{1}\t{2}".format(prefix, item[u'id'], item[u'title']).encode('utf-8')
+			if is_folder:
+				size_str = u'-'
+			else:
+				size_str = sizeof_fmt(long(item[u'fileSize']))
+			local_dt = dateutil.parser.parse(item[u'modifiedDate']).astimezone(dateutil.tz.tzlocal())
+
+			print u"{0}\t{1:<72}\t{3}\t{4}\t{2}".format(
+					prefix,
+					item[u'id'],
+					item[u'title'],
+					datetime.datetime.strftime(local_dt, u'%Y-%m-%d %H:%M:%S %Z'),
+					size_str
+					).encode('utf-8')
 		else:
 			print u"{0}\t{1}".format(prefix, item[u'title']).encode('utf-8')
 
