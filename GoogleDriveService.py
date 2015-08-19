@@ -250,7 +250,7 @@ class GoogleDriveService:
 		if base == None:
 			base = os.path.dirname(file_path)
 
-		files = self.get_file_by_title(title, parent_id=parent_id)
+		items = self.get_gdrive_items(title = title, parent_id = parent_id, mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
 
 		if len(files) > 0:
 			logger.info(u"There is {0} file(s) with the same title.".format(len(files)))
@@ -521,15 +521,6 @@ class GoogleDriveService:
 			self.remote_folder_data_cache[folder_path] = parent_item
 
 		return parent_item
-
-	def get_file_by_title(self, title, parent_id = None):
-
-		parent_item = make_parent_item(parent_id);
-
-		items = self.get_gdrive_items(title = title, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
-
-		return items
-
 
 	def get_item_by_path(self, path, parent_id = None):
 
