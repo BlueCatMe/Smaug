@@ -36,6 +36,21 @@ def exception_format(exc):
 			str(exc).decode(getfilesystemencoding())
 			);
 
+def make_parent_item(item_id = None):
+	# default is root
+	item = {
+		u'id'	: u'root',
+		u'title': u'root'
+		}
+
+	if item_id != None:
+		item = {
+			u'id'	: item_id,
+			u'title': item_id,
+			}
+	return item
+
+
 class GoogleDriveService:
 
 	# Check https://developers.google.com/drive/scopes for all available scopes
@@ -152,7 +167,7 @@ class GoogleDriveService:
 	def authorize(self):
 		return self.service_refresh()
 
-	def delete_file_by_id(self, file_id):
+	def delete(self, file_id):
 		ret = True
 		try:
 			self.service_refresh()
@@ -246,7 +261,7 @@ class GoogleDriveService:
 				logger.info(u"`{0}' exists, replace it.".format(title))
 				for file in files:
 					logger.info(u"Delete file: {0}".format(file[u'title']))
-					self.delete_file_by_id(file[u'id'])
+					self.delete(file[u'id'])
 
 		if mimetype == None:
 			mimetype = GoogleDriveService.MIMETYPE_BINARY
@@ -379,17 +394,7 @@ class GoogleDriveService:
 
 	def list(self, path = None, parent_id = None):
 
-
-		if parent_id == None:
-			parent_item = {
-					u'id'	: u'root',
-					u'title': u'root'
-					}
-		else:
-			parent_item = {
-					u'id'	: parent_id,
-					u'title': parent_id,
-					}
+		parent_item = make_parent_item(parent_id);
 
 		if path != None:
 			logger.debug(u"List {0}".format(path));
@@ -492,16 +497,7 @@ class GoogleDriveService:
 		if names[0] in [u'.', u'']:
 			del names[0]
 
-		if parent_id == None:
-			parent_item = {
-					u'id'	: u'root',
-					u'title': u'root'
-					}
-		else:
-			parent_item = {
-					u'id'	: parent_id,
-					u'title': parent_id,
-					}
+		parent_item = make_parent_item(parent_id);
 
 		for name in names:
 			self.service_refresh()
@@ -528,16 +524,7 @@ class GoogleDriveService:
 
 	def get_file_by_title(self, title, parent_id = None):
 
-		if parent_id == None:
-			parent_item = {
-					u'id'	: u'root',
-					u'title': u'root'
-					}
-		else:
-			parent_item = {
-					u'id'	: parent_id,
-					u'title': parent_id,
-					}
+		parent_item = make_parent_item(parent_id);
 
 		items = self.get_gdrive_items(title = title, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
 
@@ -558,16 +545,8 @@ class GoogleDriveService:
 		if names[0] in [u'.', u'']:
 			del names[0]
 
-		if parent_id == None:
-			parent_item = {
-					u'id'	: u'root',
-					u'title': u'root'
-					}
-		else:
-			parent_item = {
-					u'id'	: parent_id,
-					u'title': parent_id,
-					}
+		parent_item = make_parent_item(parent_id);
+
 		# start from root
 		found_names = []
 		found_item = None
