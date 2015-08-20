@@ -59,8 +59,8 @@ class ActionBase(object):
 		client_secret_json_path = options.client_secret_json_path
 
 		if not os.path.isfile(client_secret_json_path):
-			logger.critical(u"Please prepare %s for Google Drive API usage." % CLIENT_SECRET_JSON_FILENAME)
-			return -os.errno.ENOENT
+			logger.critical(u"Please prepare %s for Google Drive API usage." % client_secret_json_path)
+			return False
 
 		service = GoogleDriveService(client_secret_json_path, credentials_storage_path)
 		service.options[u'request_new_credentials'] = options.request_new_credentials
