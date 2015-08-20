@@ -479,14 +479,14 @@ class GoogleDriveService:
 	def mkdir(self, folder_path, parent_id = None):
 		dir_id = None
 
-		folder_path = folder_path.rstrip(os.sep)
+		folder_path = folder_path.rstrip(u'/')
 		parent_folder_path = os.path.dirname(folder_path)
 		if parent_folder_path in self.remote_folder_data_cache:
 			logger.debug(u"`{0}' id query is cached hit.".format(parent_folder_path))
 			parent_id = self.remote_folder_data_cache[parent_folder_path]['id']
-			names = os.path.relpath(folder_path, parent_folder_path).split(os.sep)
+			names = os.path.relpath(folder_path, parent_folder_path).split(u'/')
 		else:
-			names = folder_path.split(os.sep)
+			names = folder_path.split(u'/')
 
 		# remove root directory empty name or current directory name, '.'
 		if names[0] in [u'.', u'']:
