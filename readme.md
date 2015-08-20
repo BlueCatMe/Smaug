@@ -24,6 +24,10 @@ File synchronization will not be supported.
    * easy_install --upgrade google-api-python-client
    * pip install --upgrade google-api-python-client
 
+3. Install required packages.
+   * easy_install --upgrade install python-dateutil
+   * pip install --upgrade python-dateutil
+
 [quickstart]: https://developers.google.com/drive/web/quickstart/quickstart-python
 
 ## Getting Started ##
