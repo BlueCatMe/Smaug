@@ -304,7 +304,7 @@ class GoogleDriveService:
 				upload_return = GoogleDriveService.UPLOAD_SERVICE_ERROR
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base).replace(os.sep, '/')
+				os.path.relpath(file_path, base).replace(os.sep, u'/')
 				))
 			logger.error(exception_format(err))
 			response = None
@@ -316,7 +316,7 @@ class GoogleDriveService:
 				)
 			logger.error(u"Upload `{0}' to `{1}/{2}' failed!".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base).replace(os.sep, '/')
+				os.path.relpath(file_path, base).replace(os.sep, u'/')
 				))
 			logger.error(exception_format(err))
 			response = None
@@ -327,7 +327,7 @@ class GoogleDriveService:
 				)
 			logger.info(u"Upload `{0}' to `{1}/{2}' finished.".format(file_path,
 				self.remote_base,
-				os.path.relpath(file_path, base).replace(os.sep, '/')
+				os.path.relpath(file_path, base).replace(os.sep, u'/')
 				))
 			upload_return = GoogleDriveService.UPLOAD_DONE
 
@@ -407,7 +407,7 @@ class GoogleDriveService:
 			found_names = []
 			for i in range(0, len(names)):
 				name = names[i]
-				items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
+				items = self.get_gdrive_items(title = name, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
 				if len(items) > 0:
 					parent_item = items[0]
 					found_names.append(name)
@@ -418,7 +418,7 @@ class GoogleDriveService:
 			logger.info(u'target = {0}'.format(target))
 			# ls /xxx/yyy/zzz, check zzz is a folder or a file.
 			if bool(target):
-				items = self.get_gdrive_items(title = target, parent_id = parent_item['id']);
+				items = self.get_gdrive_items(title = target, parent_id = parent_item[u'id']);
 				if len(items) > 0:
 					item = items[0]
 
@@ -428,17 +428,17 @@ class GoogleDriveService:
 						parent_item = item;
 						found_names.append(target)
 
-						items = self.get_gdrive_items(parent_id = parent_item['id']);
+						items = self.get_gdrive_items(parent_id = parent_item[u'id']);
 				else:
 					logger.info(u"Cannot find `{0}' in `{1}'".format(target, u'/'.join(found_names)))
 					return ([], [])
 			# ls /xxx/yyy/zzz/, treat zzz as a folder.
 			else:
 				logger.debug(u'List a folder')
-				items = self.get_gdrive_items(parent_id = parent_item['id']);
+				items = self.get_gdrive_items(parent_id = parent_item[u'id']);
 		else:
 			logger.debug(u'List items with parent id')
-			items = self.get_gdrive_items(parent_id = parent_item['id']);
+			items = self.get_gdrive_items(parent_id = parent_item[u'id']);
 
 		dirs = []
 		files = []
@@ -456,7 +456,7 @@ class GoogleDriveService:
 		parent_id = None
 
 		if remote_folder != None:
-			parent = self.mkdir(remote_folder.rstrip('/'))
+			parent = self.mkdir(remote_folder.rstrip(u'/'))
 			parent_id = parent[u'id']
 			self.remote_base = remote_folder
 
@@ -483,7 +483,7 @@ class GoogleDriveService:
 		parent_folder_path = os.path.dirname(folder_path)
 		if parent_folder_path in self.remote_folder_data_cache:
 			logger.debug(u"`{0}' id query is cached hit.".format(parent_folder_path))
-			parent_id = self.remote_folder_data_cache[parent_folder_path]['id']
+			parent_id = self.remote_folder_data_cache[parent_folder_path][u'id']
 			names = os.path.relpath(folder_path, parent_folder_path).split(u'/')
 		else:
 			names = folder_path.split(u'/')
@@ -505,7 +505,7 @@ class GoogleDriveService:
 
 		for name in names:
 			self.service_refresh()
-			items = self.get_gdrive_items(title = name, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
+			items = self.get_gdrive_items(title = name, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
 			num = len(items)
 			# create a folder
 			if num == 0:
@@ -539,7 +539,7 @@ class GoogleDriveService:
 					u'title': parent_id,
 					}
 
-		items = self.get_gdrive_items(title = title, parent_id = parent_item['id'], mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
+		items = self.get_gdrive_items(title = title, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
 
 		return items
 
@@ -574,7 +574,7 @@ class GoogleDriveService:
 		while len(names) > 0:
 			name = names.pop(0)
 			self.service_refresh()
-			items = self.get_gdrive_items(title = name, parent_id = parent_item['id']);
+			items = self.get_gdrive_items(title = name, parent_id = parent_item[u'id']);
 			num = len(items)
 			if num == 0:
 				logger.info(u"Cannot find `{0}'".format(name))
