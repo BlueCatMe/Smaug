@@ -546,13 +546,13 @@ class GoogleDriveService:
 
 	def get_item_by_path(self, path, parent_id = None):
 
-		path = path.rstrip(os.sep)
+		path = path.rstrip(u'/')
 
 		if path in self.remote_folder_data_cache:
 			logger.debug(u"`{0}' query is cached hit.".format(path))
 			return self.remote_folder_data_cache;
 		else:
-			names = path.split(os.sep)
+			names = path.split(u'/')
 
 		# remove root directory empty name or current directory name, '.'
 		if names[0] in [u'.', u'']:
