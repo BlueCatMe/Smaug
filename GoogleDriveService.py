@@ -298,7 +298,7 @@ class GoogleDriveService:
 		if base == None:
 			base = os.path.dirname(file_path)
 
-		items = self.query(title = title, parent_id = parent_id, mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
+		files = self.query(title = title, parent_id = parent_id, mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
 
 		if len(files) > 0:
 			logger.info(u"There is {0} file(s) with the same title.".format(len(files)))
