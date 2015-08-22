@@ -35,12 +35,14 @@ class List(ActionBase):
 			else:
 				size_str = sizeof_fmt(long(item[u'fileSize']))
 			local_dt = dateutil.parser.parse(item[u'modifiedDate']).astimezone(dateutil.tz.tzlocal())
+			# FIXME: there should be a way to show ascii abbreviation only to avoid non-unicode decoding issue.
+			datetime_str = (str(local_dt)).decode(u'utf-8')
 
 			print u"{0}\t{1:<72}\t{3}\t{4}\t{2}".format(
 					prefix,
 					item[u'id'],
 					item[u'title'],
-					datetime.datetime.strftime(local_dt, u'%Y-%m-%d %H:%M:%S %Z'),
+					datetime_str,
 					size_str
 					).encode('utf-8')
 		else:
