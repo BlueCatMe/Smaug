@@ -522,7 +522,7 @@ class GoogleDriveService:
 
 		return parent_item
 
-	def get_item_by_path(self, path, parent_id = None):
+	def get_by_path(self, path, parent_id = None):
 
 		path = path.rstrip(u'/')
 

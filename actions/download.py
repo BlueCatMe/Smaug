@@ -154,7 +154,7 @@ class Download(ActionBase):
 		if options.by_id:
 			item = self.service.get(options.target)
 		else:
-			item = self.service.get_item_by_path(options.target)
+			item = self.service.get_by_path(options.target)
 		if item == None:
 			return False
 
