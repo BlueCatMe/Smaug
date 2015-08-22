@@ -34,6 +34,9 @@ class Download(ActionBase):
 		parser.add_argument(u'--try-to-resume', action=u'store_true',
 				default=False, help=u"Try to resume interrupted download.")
 
+		parser.add_argument(u'--by-id', action=u'store_true',
+				default=False, help=u"Download target is item ID.")
+
 	def handle_incorrect_downloaded_file(self, tmp_path):
 		if not os.path.isfile(tmp_path):
 			logger.error(u'{0} does not exist!'.format(tmp_path))
@@ -148,7 +151,10 @@ class Download(ActionBase):
 			if not os.path.exists(base_path):
 				os.makedirs(base_path)
 
-		item = self.service.get_item_by_path(options.target)
+		if options.by_id:
+			item = self.service.get(options.target)
+		else:
+			item = self.service.get_item_by_path(options.target)
 		if item == None:
 			return False
 
