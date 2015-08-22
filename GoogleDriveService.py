@@ -178,6 +178,42 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
+	def get_by_path(self, path, parent_id = None):
+
+		path = path.rstrip(u'/')
+
+		if path in self.remote_folder_data_cache:
+			logger.debug(u"`{0}' query is cached hit.".format(path))
+			return self.remote_folder_data_cache;
+		else:
+			names = path.split(u'/')
+
+		# remove root directory empty name or current directory name, '.'
+		if names[0] in [u'.', u'']:
+			del names[0]
+
+		parent_item = make_parent_item(parent_id);
+
+		# start from root
+		found_names = []
+		found_item = None
+		while len(names) > 0:
+			name = names.pop(0)
+			self.service_refresh()
+			items = self.query(title = name, parent_id = parent_item[u'id']);
+			num = len(items)
+			if num == 0:
+				logger.error(u"Cannot find `{0}' in `{1}'".format(name, u'/'.join(found_names)))
+				parent_item = None
+				break
+			found_names.append(name)
+			parent_item = items[0]
+
+		if parent_item != None:
+			self.remote_folder_data_cache[path] = parent_item
+
+		return parent_item
+
 	def get(self, id):
 
 		self.service_refresh()
@@ -396,54 +432,22 @@ class GoogleDriveService:
 
 		parent_item = make_parent_item(parent_id);
 
+		items = []
 		if path != None:
 			logger.debug(u"List {0}".format(path));
 
-			names = path.split(u'/')
-
-			# remove root directory empty name or current directory name, '.'
-			if names[0] in [u'.', u'']:
-				del names[0]
-
-			# get the last name to later process.
-			target = names.pop()
-
-			# check parent path first to get parent id.
-			found_names = []
-			for i in range(0, len(names)):
-				name = names[i]
-				items = self.query(title = name, parent_id = parent_item[u'id'], mimeType = GoogleDriveService.MIMETYPE_FOLDER);
-				if len(items) > 0:
-					parent_item = items[0]
-					found_names.append(name)
-				else:
-					logger.info(u"Cannot find `{0}' in `{1}'".format(name, u'/'.join(found_names)))
-					return ([], [])
-
-			logger.info(u'target = {0}'.format(target))
-			# ls /xxx/yyy/zzz, check zzz is a folder or a file.
-			if bool(target):
-				items = self.query(title = target, parent_id = parent_item[u'id']);
-				if len(items) > 0:
-					item = items[0]
-
-					# target is a folder, list it again.
-					if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
-						logger.info(u'Target {0} is a folder, list it again'.format(target))
-						parent_item = item;
-						found_names.append(target)
-
-						items = self.query(parent_id = parent_item[u'id']);
-				else:
-					logger.info(u"Cannot find `{0}' in `{1}'".format(target, u'/'.join(found_names)))
-					return ([], [])
-			# ls /xxx/yyy/zzz/, treat zzz as a folder.
-			else:
-				logger.debug(u'List a folder')
+			item = self.get_by_path(path)
+			if item == None:
+				return ([], [])
+			elif item[u'id'] == u'root' or item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
 				items = self.query(parent_id = parent_item[u'id']);
-		else:
+			else:
+				items = [item]
+		elif parent_id != None:
 			logger.debug(u'List items with parent id')
 			items = self.query(parent_id = parent_item[u'id']);
+		else:
+			logger.error(u'No target to list.')
 
 		dirs = []
 		files = []
@@ -519,42 +523,6 @@ class GoogleDriveService:
 
 		if parent_item != None:
 			self.remote_folder_data_cache[folder_path] = parent_item
-
-		return parent_item
-
-	def get_by_path(self, path, parent_id = None):
-
-		path = path.rstrip(u'/')
-
-		if path in self.remote_folder_data_cache:
-			logger.debug(u"`{0}' query is cached hit.".format(path))
-			return self.remote_folder_data_cache;
-		else:
-			names = path.split(u'/')
-
-		# remove root directory empty name or current directory name, '.'
-		if names[0] in [u'.', u'']:
-			del names[0]
-
-		parent_item = make_parent_item(parent_id);
-
-		# start from root
-		found_names = []
-		found_item = None
-		while len(names) > 0:
-			name = names.pop(0)
-			self.service_refresh()
-			items = self.query(title = name, parent_id = parent_item[u'id']);
-			num = len(items)
-			if num == 0:
-				logger.info(u"Cannot find `{0}'".format(name))
-				parent_item = None
-				break
-
-			parent_item = items[0]
-
-		if parent_item != None:
-			self.remote_folder_data_cache[path] = parent_item
 
 		return parent_item
 
