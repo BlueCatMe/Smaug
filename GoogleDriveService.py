@@ -535,40 +535,6 @@ class GoogleDriveService:
 
 		return parent_item
 
-	def download_file_chunk(self, file_id, file_path):
-
-		item = self.get(file_id)
-		if item == None:
-			return None
-
-		fd = open(file_path, u'w')
-
-		request = self.drive_service.files().get_media(fileId=file_id)
-		media_request = MediaIoBaseDownload(fd, request, chunksize=GoogleDriveService.DOWNLOAD_TRANSFER_CHUNK_SIZE)
-
-		start_time = datetime.datetime.now()
-		total_size = int(item[u'fileSize'])
-		while True:
-			try:
-				download_progress, done = media_request.next_chunk()
-			except errors.HttpError, error:
-				logger.error(u'Http Error: {0}'.format(error))
-				return
-
-			if download_progress:
-				progress = download_progress.progress()
-				sys.stdout.write(u"Progress {0}% ({1}/{2} bytes, {3} KB/s)\r".format(
-							int(progress * 100),
-							int(total_size * progress),
-							total_size,
-							calculate_speed(start_time, progress, total_size))
-							)
-				sys.stdout.flush()
-			if done:
-				break
-				logger.info(u'Download Complete')
-		return
-
 	def download_file(self, file_id, file_path, try_to_resume = False):
 
 		ret = True
