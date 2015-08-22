@@ -100,10 +100,6 @@ class GoogleDriveService:
 		# class options
 		self.options = {
 				u'request_new_credentials': False,
-				u'conflict_action': GoogleDriveService.DEFAULT_CONFLICT_ACTION,
-				u'remove_after_upload': False,
-				u'move_to_backup_folder': None,
-				u'move_skipped_file': False,
 				}
 
 	def authorize_raw(self):
@@ -266,24 +262,6 @@ class GoogleDriveService:
 
 		return items
 
-
-	def handle_uploaded_file(self, file_path, base = None):
-		if base == None:
-			base = os.path.dirname(file_path)
-
-		if self.options[u'move_to_backup_folder'] != None:
-			relative_path = os.path.relpath(file_path, base)
-			new_folder_path = os.path.join(self.options[u'move_to_backup_folder'], os.path.dirname(relative_path))
-
-			if not os.path.exists(new_folder_path):
-				os.makedirs(new_folder_path)
-			try:
-				os.rename(file_path, os.path.join(new_folder_path, os.path.basename(file_path)))
-				logger.info(u"Move uploaded file {0} to {1}".format(file_path, new_folder_path))
-			except WindowsError, err:
-				logger.warn(u"Cannot move uploaded file {0} to {1}".format(file_path, new_folder_path))
-				logger.warn(exception_format(err))
-
 	UPLOAD_SKIPPED		= 1
 	UPLOAD_DONE		= 0
 	UPLOAD_FAIL		= -1
@@ -291,25 +269,6 @@ class GoogleDriveService:
 
 	def upload_file_raw(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
-
-		if title == None:
-			title = os.path.basename(file_path)
-
-		if base == None:
-			base = os.path.dirname(file_path)
-
-		files = self.query(title = title, parent_id = parent_id, mimeType = GoogleDriveService.MIMETYPE_NON_FOLDER);
-
-		if len(files) > 0:
-			logger.info(u"There is {0} file(s) with the same title.".format(len(files)))
-			if self.options[u'conflict_action'] == u'skip':
-				logger.info(u"`{0}' exists, skip it.".format(title))
-				return (files[0], GoogleDriveService.UPLOAD_SKIPPED)
-			elif self.options[u'conflict_action'] == u'replace':
-				logger.info(u"`{0}' exists, replace it.".format(title))
-				for file in files:
-					logger.info(u"Delete file: {0}".format(file[u'title']))
-					self.delete(file[u'id'])
 
 		if mimetype == None:
 			mimetype = GoogleDriveService.MIMETYPE_BINARY
@@ -399,47 +358,6 @@ class GoogleDriveService:
 
 		return (response, upload_return)
 
-	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
-		retry_count = GoogleDriveService.DEFAULT_UPLOAD_RETRY_COUNT
-		while retry_count > 0:
-			(f, r) = self.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
-			if f != None: # uploaded or skipped
-				if (r == GoogleDriveService.UPLOAD_DONE) or (r == GoogleDriveService.UPLOAD_SKIPPED and self.options[u'move_skipped_file']):
-					self.handle_uploaded_file(file_path, base=base)
-				retry_count = 0
-			elif r == GoogleDriveService.UPLOAD_SERVICE_ERROR:
-				logger.error("Upload failed due to service error. Try it again..")
-				retry_count = retry_count - 1
-			else:
-				logger.error("Upload failed due to errors cannot be recovered. Give up.")
-				retry_count = 0
-		return (f, r)
-
-	def upload_folder(self, folder_path, parent_id=None, without_folders = False):
-
-		folder_result = True
-
-		logger.info(u"Uploading folder: {0}".format(folder_path))
-
-		base = os.path.dirname(folder_path)
-
-		# windows returns unicode filename with unicode path.
-		for root, dirs, files in os.walk(folder_path):
-
-			relative_path = os.path.relpath(root, base)
-
-			if without_folders:
-				parent = {u'id':parent_id}
-			else:
-				parent = self.mkdir(relative_path, parent_id)
-
-			for file in files:
-				(f, result) = self.upload_file(os.path.join(root, file), base=base, title=file, parent_id=parent[u'id'])
-				if f == None:
-					folder_result = False
-
-		return folder_result
-
 	def list_by_path(self, path):
 
 		parent_item = make_parent_item(None)
@@ -467,32 +385,6 @@ class GoogleDriveService:
 		else:
 			logger.error(u'No target to list.')
 		return items
-
-	def upload(self, path, remote_folder = None, without_folders = False):
-
-		result = False
-		parent_id = None
-
-		if remote_folder != None:
-			parent = self.mkdir(remote_folder.rstrip(u'/'))
-			parent_id = parent[u'id']
-			self.remote_base = remote_folder
-
-		path = path.rstrip(os.sep)
-		logger.info(path)
-
-		if os.path.exists(path):
-			if os.path.isdir(path):
-				result = self.upload_folder(path, parent_id=parent_id, without_folders=without_folders)
-			elif os.path.isfile(path):
-				(f, r) = self.upload_file(path, parent_id=parent_id)
-				result = (f != None)
-			else:
-				logger.error(u"Not a file and not a folder!")
-		else:
-			logger.error(u"{0} does not exist!".format(path))
-
-		return result
 
 	def mkdir(self, folder_path, parent_id = None):
 		dir_id = None
