@@ -142,9 +142,11 @@ class Download(ActionBase):
 		logger.debug(options)
 		self.options = options
 
-		base_path = options.output_folder.rstrip(os.sep)
-		if not os.path.exists(base_path):
-			os.makedirs(base_path)
+		base_path = options.output_folder
+		if options.output_folder != None:
+			base_path = base_path.rstrip(os.sep)
+			if not os.path.exists(base_path):
+				os.makedirs(base_path)
 
 		item = self.service.get_item_by_path(options.target)
 		if item == None:
