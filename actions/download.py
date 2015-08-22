@@ -124,7 +124,7 @@ class Download(ActionBase):
 	def download_folder(self, item, base_path = None):
 		logger.info(u'Donwloading a folder: {0}'.format(item[u'title']))
 
-		(dirs, files) = self.service.list(parent_id=item[u'id'])
+		(dirs, files) = items_to_list(self.service.list(item[u'id']))
 
 		ret = True
 		for f in files:

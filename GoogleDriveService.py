@@ -50,6 +50,18 @@ def make_parent_item(item_id = None):
 			}
 	return item
 
+def items_to_list(items):
+	if items == None:
+		return ([], [])
+	dirs = []
+	files = []
+	for item in items:
+		if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
+			dirs.append(item)
+		else:
+			files.append(item)
+
+	return (dirs,files)
 
 class GoogleDriveService:
 
@@ -428,9 +440,9 @@ class GoogleDriveService:
 
 		return folder_result
 
-	def list(self, path = None, parent_id = None):
+	def list_by_path(self, path):
 
-		parent_item = make_parent_item(parent_id);
+		parent_item = make_parent_item(None)
 
 		items = []
 		if path != None:
@@ -438,26 +450,23 @@ class GoogleDriveService:
 
 			item = self.get_by_path(path)
 			if item == None:
-				return ([], [])
+				pass
 			elif item[u'id'] == u'root' or item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
 				items = self.query(parent_id = parent_item[u'id']);
 			else:
 				items = [item]
-		elif parent_id != None:
-			logger.debug(u'List items with parent id')
-			items = self.query(parent_id = parent_item[u'id']);
 		else:
 			logger.error(u'No target to list.')
 
-		dirs = []
-		files = []
-		for item in items:
-			if item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
-				dirs.append(item)
-			else:
-				files.append(item)
+		return items
 
-		return (dirs,files)
+	def list(self, parent_id):
+		if parent_id != None:
+			logger.debug(u'List items with parent id')
+			items = self.query(parent_id = parent_id);
+		else:
+			logger.error(u'No target to list.')
+		return items
 
 	def upload(self, path, remote_folder = None, without_folders = False):
 
