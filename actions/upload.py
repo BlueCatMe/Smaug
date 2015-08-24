@@ -67,7 +67,7 @@ class Upload(ActionBase):
 
 		retry_count = GoogleDriveService.DEFAULT_UPLOAD_RETRY_COUNT
 		while retry_count > 0:
-			(f, r) = self.service.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
+			(f, r) = self.service.upload_file(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
 			if f != None: # uploaded or skipped
 				if (r == GoogleDriveService.UPLOAD_DONE):
 					self.handle_uploaded_file(file_path, base=base)

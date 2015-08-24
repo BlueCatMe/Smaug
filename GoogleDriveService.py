@@ -267,7 +267,7 @@ class GoogleDriveService:
 	UPLOAD_FAIL		= -1
 	UPLOAD_SERVICE_ERROR	= -2
 
-	def upload_file_raw(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
+	def upload_file(self, file_path, base=None, mimetype=None, title=None, parent_id=None):
 		logger.info(u"Uploading file: {0}".format(file_path))
 
 		if mimetype == None:
