@@ -56,6 +56,8 @@ class Upload(ActionBase):
 			logger.info(u"There is {0} file(s) with the same title.".format(len(files)))
 			if self.options.conflict_action == u'skip':
 				logger.info(u"`{0}' exists, skip it.".format(title))
+				if self.options.move_skipped_file:
+					self.handle_uploaded_file(file_path, base=base)
 				return (files[0], GoogleDriveService.UPLOAD_SKIPPED)
 			elif self.options.conflict_action == u'replace':
 				logger.info(u"`{0}' exists, replace it.".format(title))
@@ -67,7 +69,7 @@ class Upload(ActionBase):
 		while retry_count > 0:
 			(f, r) = self.service.upload_file_raw(file_path, base=base, mimetype=mimetype, title=title, parent_id=parent_id)
 			if f != None: # uploaded or skipped
-				if (r == GoogleDriveService.UPLOAD_DONE) or (r == GoogleDriveService.UPLOAD_SKIPPED and self.options.move_skipped_file):
+				if (r == GoogleDriveService.UPLOAD_DONE):
 					self.handle_uploaded_file(file_path, base=base)
 				retry_count = 0
 			elif r == GoogleDriveService.UPLOAD_SERVICE_ERROR:
