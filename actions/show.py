@@ -27,10 +27,10 @@ class Show(ActionBase):
 		logger.info(u"Processing SHOW")
 		logger.debug(options)
 
-		return self.service.get(options.target)
+		return self.service.get_raw(options.target)
 
 	def find_path(self, id):
-		item = self.service.get(id)
+		item = self.service.get_raw(id)
 		if item == None:
 			return
 		if len(item[u'parents']) == 0:

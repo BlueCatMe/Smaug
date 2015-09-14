@@ -124,7 +124,7 @@ class Download(ActionBase):
 	def download_folder(self, item, base_path = None):
 		logger.info(u'Donwloading a folder: {0}'.format(item[u'title']))
 
-		(dirs, files) = items_to_list(self.service.list(item[u'id']))
+		(dirs, files) = items_to_list(self.service.list_raw(item[u'id']))
 
 		ret = True
 		for f in files:
@@ -152,9 +152,9 @@ class Download(ActionBase):
 				os.makedirs(base_path)
 
 		if options.by_id:
-			item = self.service.get(options.target)
+			item = self.service.get_raw(options.target)
 		else:
-			item = self.service.get_by_path(options.target)
+			item = self.service.get(options.target)
 		if item == None:
 			return False
 

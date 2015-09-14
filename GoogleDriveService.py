@@ -186,7 +186,7 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
-	def get_by_path(self, path, parent_id = None):
+	def get(self, path, parent_id = None):
 
 		path = path.rstrip(u'/')
 
@@ -222,7 +222,7 @@ class GoogleDriveService:
 
 		return parent_item
 
-	def get(self, id):
+	def get_raw(self, id):
 
 		self.service_refresh()
 
@@ -358,7 +358,7 @@ class GoogleDriveService:
 
 		return (response, upload_return)
 
-	def list_by_path(self, path):
+	def list(self, path):
 
 		parent_item = make_parent_item(None)
 
@@ -366,7 +366,7 @@ class GoogleDriveService:
 		if path != None:
 			logger.debug(u"List {0}".format(path));
 
-			item = self.get_by_path(path)
+			item = self.get(path)
 			if item == None:
 				pass
 			elif item[u'id'] == u'root' or item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
@@ -378,7 +378,7 @@ class GoogleDriveService:
 
 		return items
 
-	def list(self, parent_id):
+	def list_raw(self, parent_id):
 		if parent_id != None:
 			logger.debug(u'List items with parent id')
 			items = self.query(parent_id = parent_id);
@@ -431,7 +431,7 @@ class GoogleDriveService:
 
 		ret = True
 
-		item = self.get(file_id)
+		item = self.get_raw(file_id)
 		if item == None:
 			return False
 

@@ -53,7 +53,7 @@ class List(ActionBase):
 		logger.info(u"Processing LIST")
 		logger.debug(options)
 
-		(dirs, files) = items_to_list(self.service.list_by_path(options.target))
+		(dirs, files) = items_to_list(self.service.list(options.target))
 		return (dirs, files)
 
 
