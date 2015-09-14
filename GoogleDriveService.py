@@ -370,7 +370,7 @@ class GoogleDriveService:
 			if item == None:
 				pass
 			elif item[u'id'] == u'root' or item[u'mimeType'] == GoogleDriveService.MIMETYPE_FOLDER:
-				items = self.query(parent_id = parent_item[u'id']);
+				items = self.query(parent_id = item[u'id']);
 			else:
 				items = [item]
 		else:
