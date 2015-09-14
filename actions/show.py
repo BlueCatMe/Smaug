@@ -17,7 +17,7 @@ from utils import sizeof_fmt
 logger = logging.getLogger(__name__)
 
 @register_action(u'show', 'Show details of an item.')
-class List(ActionBase):
+class Show(ActionBase):
 	def update_argparser(self, parser, argv):
 		parser.add_argument(u'--find-path', action=u'store_true',
 				default=False, help=u"Find the path of the item.")
