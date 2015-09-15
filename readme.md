@@ -40,7 +40,7 @@ It will show an URL and ask an OAuth2 token for accessing Google Drive at the fi
 	               [--credentials-path CREDENTIALS_PATH]
 	               [--client-secret-json-path CLIENT_SECRET_JSON_PATH]
 	               [--log-file LOG_FILE]
-	               {upload,download,list} target
+	               {upload,rename,download,list,show,delete} target
 
 	GoogleDrive CLI "Smaug"
 
@@ -62,6 +62,12 @@ It will show an URL and ask an OAuth2 token for accessing Google Drive at the fi
 
 	ls optional arguments:
 	  --long                Use a long listing format.
+
+	rename optional arguments:
+	  --by-id               Rename target is item ID.
+
+	delete optional arguments:
+	  --by-id               Delete target is item ID.
 
 	upload optional arguments:
 	  --without-folders     Do not recreate folder structure in Google Drive.
@@ -96,6 +102,38 @@ List root of Google Drive
 List /Documents/MyReport in details
 
 	% python smaug.py list /Documents/MyReport --long
+
+List / in details
+
+	% python smaug.py list --by-id root --long
+
+List files under ID 0BdxxxxB3dSiXYzDQ
+
+	% python smaug.py list --by-id 0BdxxxxB3dSiXYzDQ
+
+### Delete Example ###
+
+NOTE: If there are multiple items with the same title in path, the item be operated is unpredictable.
+
+Delete a item by path
+
+	% python smaug.py delete /xxx/yyy
+
+Delete a item by id
+
+	% python smaug.py delete --by-id f23nc9avr23fas
+
+### Rename Example ###
+
+NOTE: If there are multiple items with the same title in path, the item be operated is unpredictable.
+
+Rename a item by path
+
+	% python smaug.py rename /xxx/yyy zzz
+
+Rename a item by id
+
+	% python smaug.py rename --by-id f23nc9avr23fas zzz
 
 ### Upload Example ###
 
