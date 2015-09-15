@@ -186,6 +186,26 @@ class GoogleDriveService:
 			ret = False
 		return ret
 
+	def rename(self, file_id, new_title):
+		new_item = None
+		self.service_refresh()
+
+		meta = dict()
+		item = self.get_raw(file_id)
+		if item != None:
+			meta[u'title'] = new_title
+			try:
+				new_item = self.drive_service.files().patch(
+						fileId=item[u'id'],
+						body = meta,
+						fields=u'title'
+						).execute()
+			except Exception, err:
+				logger.error(u'Patch file failed!')
+				logger.error(exception_format(err))
+				new_item = None
+		return new_item
+
 	def get(self, path, parent_id = None):
 
 		path = path.rstrip(u'/')
