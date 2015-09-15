@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class Rename(ActionBase):
 	def update_argparser(self, parser, argv):
 		parser.add_argument(u'--by-id', action=u'store_true',
-				default=False, help=u"Delete target is item ID.")
+				default=False, help=u"Rename target is item ID.")
 		parser.add_argument(u'new_title',
 				help=u"new title for this item.")
 
