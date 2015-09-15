@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 class List(ActionBase):
 	def update_argparser(self, parser, argv):
 
+		parser.add_argument(u'--by-id', action=u'store_true',
+				default=False, help=u"Delete target is item ID.")
 		parser.add_argument(u'--long', action='store_true',
 				default=False, help=u"Use a long listing format.")
 
@@ -53,7 +55,12 @@ class List(ActionBase):
 		logger.info(u"Processing LIST")
 		logger.debug(options)
 
-		(dirs, files) = items_to_list(self.service.list(options.target))
+		if options.by_id:
+			if options.target == u'/':
+				options.target = 'root'
+			(dirs, files) = items_to_list(self.service.list_raw(options.target))
+		else:
+			(dirs, files) = items_to_list(self.service.list(options.target))
 		return (dirs, files)
 
 
